@@ -214,7 +214,7 @@
 }
 
 :global(.titlebar-overlay:not(.fullscreen)) .header {
-  padding-left: 78px;
+  padding-left: var(--traffic-lights-inset);
 }
 
 /* The traffic lights stand in for the logo there. */

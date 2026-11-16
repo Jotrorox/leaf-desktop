@@ -14,7 +14,7 @@ import { readStorage, writeStorage } from "../lib/storage.js";
 export const SIDEBAR_MIN_WIDTH = 200;
 export const SIDEBAR_MAX_WIDTH = 480;
 /** Desktop: a little wider than the web app's 240, for the macOS traffic lights. */
-export const SIDEBAR_DEFAULT_WIDTH = 264;
+export const SIDEBAR_DEFAULT_WIDTH = 280;
 
 const STORAGE_KEY = "leaf.sidebar";
 const NARROW_QUERY = "(max-width: 767px)";

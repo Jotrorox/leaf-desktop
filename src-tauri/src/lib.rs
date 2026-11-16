@@ -53,6 +53,28 @@ fn open_external<R: Runtime>(app: &AppHandle<R>, url: &url::Url) {
     }
 }
 
+/// `trafficLightPosition` in tauri.conf.json centers the traffic lights on the
+/// 45px sidebar header up to macOS 15. tao makes the title bar `button height + y`
+/// tall and leaves the buttons where AppKit puts them in it: near its bottom
+/// before macOS 26, vertically centered since, which lifts them by this much.
+#[cfg(target_os = "macos")]
+const TRAFFIC_LIGHTS_Y_OFFSET_MACOS_26: f64 = 7.0;
+
+/// The running macOS's major version, from the system's own version file.
+#[cfg(target_os = "macos")]
+fn macos_major_version() -> Option<u32> {
+    let plist = std::fs::read_to_string("/System/Library/CoreServices/SystemVersion.plist").ok()?;
+    parse_product_version_major(&plist)
+}
+
+/// The major version in a `SystemVersion.plist`'s `ProductVersion`.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn parse_product_version_major(plist: &str) -> Option<u32> {
+    let after_key = &plist[plist.find("<key>ProductVersion</key>")?..];
+    let value = &after_key[after_key.find("<string>")? + "<string>".len()..];
+    value.split(['.', '<']).next()?.trim().parse().ok()
+}
+
 fn create_main_window(app: &App) -> tauri::Result<()> {
     let handle = app.handle().clone();
     let config = app
@@ -63,6 +85,16 @@ fn create_main_window(app: &App) -> tauri::Result<()> {
         .find(|window| window.label == MAIN)
         .cloned()
         .unwrap_or_default();
+    #[cfg(target_os = "macos")]
+    let config = {
+        let mut config = config;
+        if macos_major_version().is_some_and(|major| major >= 26)
+            && let Some(position) = config.traffic_light_position.as_mut()
+        {
+            position.y += TRAFFIC_LIGHTS_Y_OFFSET_MACOS_26;
+        }
+        config
+    };
 
     let navigate_handle = handle.clone();
     let new_window_handle = handle.clone();
@@ -323,5 +355,18 @@ mod tests {
         for raw in other {
             assert!(!is_app_url(&url::Url::parse(raw).unwrap()), "{raw}");
         }
+    }
+
+    #[test]
+    fn product_version_major() {
+        let plist = |version: &str| {
+            format!(
+                "<dict>\n\t<key>BuildID</key>\n\t<string>X</string>\n\t<key>ProductVersion</key>\n\t<string>{version}</string>\n</dict>"
+            )
+        };
+        assert_eq!(parse_product_version_major(&plist("27.3")), Some(27));
+        assert_eq!(parse_product_version_major(&plist("15.7.1")), Some(15));
+        assert_eq!(parse_product_version_major(&plist("26")), Some(26));
+        assert_eq!(parse_product_version_major("<dict></dict>"), None);
     }
 }

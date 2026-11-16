@@ -40,5 +40,5 @@
 }
 
 :global(.titlebar-overlay:not(.fullscreen)) .leading {
-  padding-left: 80px;
+  padding-left: var(--traffic-lights-inset);
 }

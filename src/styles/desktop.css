@@ -5,6 +5,15 @@
  * traffic lights over the sidebar) and `fullscreen` (no traffic lights).
  */
 
+/*
+ * Room the macOS traffic lights take at the window's top-left: they start at
+ * x = 16 (`trafficLightPosition` in tauri.conf.json) and, since macOS 26, span
+ * about 60px (14px buttons, 9px apart), so content starts 14px past them.
+ */
+html.titlebar-overlay {
+  --traffic-lights-inset: 90px;
+}
+
 /* No rubber-banding of the whole window; scroll areas keep theirs. */
 html.desktop,
 html.desktop body {
