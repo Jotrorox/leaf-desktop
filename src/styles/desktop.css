@@ -1,0 +1,17 @@
+/*
+ * Desktop app: what makes the web UI feel native in its own window.
+ * `<html>` carries `desktop` (inside Tauri), `platform-mac|windows|linux`,
+ * `titlebar-overlay` (macOS: the content runs under the title bar, with the
+ * traffic lights over the sidebar) and `fullscreen` (no traffic lights).
+ */
+
+/* No rubber-banding of the whole window; scroll areas keep theirs. */
+html.desktop,
+html.desktop body {
+  overscroll-behavior: none;
+}
+
+/* The window's background shows while resizing: match the app. */
+html.desktop {
+  background: var(--color-bg);
+}

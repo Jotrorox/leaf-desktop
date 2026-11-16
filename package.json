@@ -1,0 +1,37 @@
+{
+  "name": "leaf-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "leaf desktop app (SolidJS + Vite front end, Tauri shell)",
+  "type": "module",
+  "engines": {
+    "node": ">=26.13.1"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:mock": "vite --mode mock",
+    "build": "vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test \"src/**/*.test.js\""
+  },
+  "dependencies": {
+    "@clerk/clerk-js": "6.39.0",
+    "@clerk/ui": "1.40.0",
+    "@tauri-apps/api": "2.12.5",
+    "@tauri-apps/plugin-deep-link": "2.6.3",
+    "@tauri-apps/plugin-opener": "2.7.3",
+    "katex": "0.19.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "solid-js": "1.9.19"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.8",
+    "@tauri-apps/cli": "2.12.5",
+    "typescript": "7.0.2",
+    "vite": "8.3.8",
+    "vite-plugin-solid": "2.11.16"
+  }
+}

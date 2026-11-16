@@ -1,0 +1,288 @@
+.tree,
+.group {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  margin: 0;
+}
+
+/* One row: the treeitem link fills it; the actions float on its right end. */
+.row {
+  --indent: calc(var(--space-1) + (var(--level) - 1) * 14px);
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 30px;
+  border-radius: var(--radius-md);
+  /* Explicit, so the actions can `inherit` it and cover the end of the label. */
+  background: var(--color-bg-sidebar);
+  color: var(--color-text-secondary);
+}
+
+.row:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.row:has([aria-current="page"]) {
+  background: var(--color-bg-active);
+  color: var(--color-text);
+}
+
+.link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--space-2) 0 var(--indent);
+  border-radius: inherit;
+  color: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+.link:focus-visible {
+  outline-offset: -2px;
+}
+
+.toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: -2px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+}
+
+.toggle:has(svg):hover {
+  background: var(--color-bg-active);
+  color: var(--color-text);
+}
+
+.chevron {
+  transition: transform 120ms ease;
+}
+
+[aria-expanded="true"] .chevron {
+  transform: rotate(90deg);
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Hover actions: "…" and "+". Shown on hover, keyboard focus in the row, or while the menu is open. */
+.actions {
+  position: absolute;
+  top: 50%;
+  right: var(--space-1);
+  display: flex;
+  gap: 2px;
+  padding-left: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.row:hover .actions,
+.row:focus-within .actions,
+.actions:has([aria-expanded="true"]) {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.actions button:hover {
+  background: var(--color-bg-active);
+}
+
+.row[data-dragging] .actions,
+.row[data-renaming] .actions,
+:root[data-dragging] .actions {
+  display: none;
+}
+
+/* Inline rename sits over the label. */
+.rename {
+  position: absolute;
+  inset-block: 3px;
+  left: calc(var(--indent) + 18px + 18px + 2 * var(--space-1-5) - 6px);
+  right: var(--space-1);
+  min-width: 0;
+  padding: 0 var(--space-1-5);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-accent-subtle);
+}
+
+.row[data-renaming] .label {
+  visibility: hidden;
+}
+
+/* Drag and drop */
+.row[data-dragging] {
+  opacity: 0.4;
+}
+
+.row[data-drop]::after {
+  content: "";
+  position: absolute;
+  right: var(--space-1);
+  left: var(--indent);
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-accent);
+  pointer-events: none;
+}
+
+.row[data-drop="before"]::after {
+  top: -1px;
+}
+
+.row[data-drop="after"]::after {
+  bottom: -1px;
+}
+
+/* After an expanded page: lands as its first child, so the line is indented one level. */
+.row[data-drop="first-child"]::after {
+  bottom: -1px;
+  left: calc(var(--indent) + 14px);
+}
+
+.row[data-drop="inside"] {
+  background: var(--color-accent-subtle);
+  color: var(--color-text);
+}
+
+.row[data-drop="inside"]::after {
+  inset: 0;
+  height: auto;
+  border-radius: inherit;
+  background: none;
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.preview {
+  max-width: 240px;
+  padding: var(--space-1) 10px;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.95;
+}
+
+/* Loading, empty and error rows inside a level. */
+.status {
+  --indent: calc(var(--space-1) + (var(--level) - 1) * 14px);
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 28px;
+  padding-left: calc(var(--indent) + 18px + var(--space-1-5));
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.retry {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-accent);
+  font-size: inherit;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: var(--space-2) var(--space-2) var(--space-2) 30px;
+}
+
+.skeleton span {
+  height: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-active);
+  animation: pulse 1.2s ease-in-out infinite alternate;
+}
+
+.skeleton span:nth-child(1) {
+  width: 70%;
+}
+
+.skeleton span:nth-child(2) {
+  width: 55%;
+}
+
+.skeleton span:nth-child(3) {
+  width: 62%;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.5;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Touch: taller rows, and the actions always visible (there's no hover). */
+@media (pointer: coarse) {
+  .row {
+    height: 40px;
+  }
+}
+
+@media (hover: none) {
+  .actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Touch buttons are big: keep just "…" (its menu has "Add a page inside") so titles have room. */
+  .addButton {
+    display: none;
+  }
+}

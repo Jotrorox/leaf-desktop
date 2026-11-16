@@ -1,0 +1,36 @@
+/* Undo the UA's centered popover; Popover.jsx sets top, left and max-height. */
+.popover {
+  position: fixed;
+  inset: auto;
+  top: 0;
+  left: 0;
+  max-width: min(320px, calc(100vw - 16px));
+  margin: 0;
+  padding: var(--space-1);
+  overflow: auto;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  box-shadow: var(--shadow-lg);
+}
+
+.popover:focus {
+  outline: none;
+}
+
+.popover:popover-open {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+@starting-style {
+  .popover:popover-open {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}

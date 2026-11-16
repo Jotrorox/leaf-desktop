@@ -1,0 +1,91 @@
+# Tool versions and tasks for leaf desktop.
+#   mise install      install the pinned tools below
+#   mise tasks        list tasks
+#   mise run <task>   run a task from anywhere in the repo
+#
+# Rust is NOT managed by mise: rustup reads rust-toolchain.toml.
+
+min_version = "2026.9.0"
+
+[settings]
+# Never let mise install or shim Rust here, even if a global config enables it.
+disable_tools = ["rust"]
+
+[tools]
+node = "26.13.1"          # current LTS
+pnpm = "12.21.0"
+actionlint = "1.7.12"     # GitHub Actions linter
+shellcheck = "0.11.0"     # used by actionlint for `run:` scripts
+
+# ---------------------------------------------------------------------------
+# Setup / app
+# ---------------------------------------------------------------------------
+
+[tasks.setup]
+description = "Install front-end dependencies (pnpm uses --frozen-lockfile when CI=true)"
+run = "pnpm install"
+
+[tasks.dev]
+description = "Run the desktop app in development mode (production services; override in .env.local)"
+depends = ["setup"]
+run = "pnpm tauri dev"
+
+[tasks.dev-mock]
+description = "Run the UI in a browser against the in-memory mock backend (no sign-in needed)"
+depends = ["setup"]
+run = "pnpm dev:mock"
+
+[tasks.build]
+description = "Build the production desktop bundle for the current OS (extra args go to `tauri build`)"
+depends = ["setup"]
+run = "pnpm tauri build"
+
+[tasks.icons]
+description = "Regenerate src-tauri/icons from app-icon.svg"
+depends = ["setup"]
+run = [
+  "pnpm tauri icon app-icon.svg",
+  "node -e \"for (const d of ['android','ios']) require('node:fs').rmSync('src-tauri/icons/' + d, { recursive: true, force: true })\"",
+]
+
+# ---------------------------------------------------------------------------
+# Quality
+# ---------------------------------------------------------------------------
+
+[tasks.fmt]
+description = "Format Rust and front-end code"
+depends = ["setup"]
+run = ["cargo fmt --all", "pnpm biome format --write ."]
+
+[tasks.fmt-check]
+description = "Check formatting without writing"
+depends = ["setup"]
+run = ["cargo fmt --all -- --check", "pnpm biome format ."]
+
+[tasks.lint]
+description = "Clippy (deny warnings), Biome, tsc and actionlint"
+depends = ["setup"]
+run = [
+  "cargo clippy --workspace --all-targets --locked -- -D warnings",
+  "pnpm biome check .",
+  "pnpm typecheck",
+  "actionlint",
+]
+
+[tasks.test]
+description = "Rust tests and front-end unit tests"
+depends = ["setup"]
+run = ["cargo test --workspace --locked", "pnpm test"]
+
+[tasks.check]
+description = "Everything CI runs: fmt-check, lint, test"
+depends = ["fmt-check", "lint", "test"]
+
+# ---------------------------------------------------------------------------
+# Release
+# ---------------------------------------------------------------------------
+
+[tasks.release]
+description = "Bump the version everywhere, commit and tag v<version> (push stays manual)"
+usage = 'arg "<version>" help="New semver version without the v prefix, e.g. 0.2.0"'
+run = 'node scripts/release.mjs "${usage_version}"'

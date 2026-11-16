@@ -1,0 +1,20 @@
+.kbd {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.boxed {
+  display: inline-block;
+  min-width: 24px;
+  padding: 1px var(--space-1-5);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-sidebar);
+  color: var(--color-text-secondary);
+  text-align: center;
+  opacity: 1;
+}

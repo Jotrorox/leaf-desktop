@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <title>leaf</title>
+  <rect width="32" height="32" rx="9" fill="#1f73cf"/>
+  <g transform="translate(5.12 5.12) scale(1.088)" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 16c0-7 4-11.5 12-12 .5 8-4 12-12 12Z"/>
+    <path d="M4 16l6.5-6.5"/>
+  </g>
+</svg>

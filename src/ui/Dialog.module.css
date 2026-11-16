@@ -1,0 +1,66 @@
+.dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-width: none;
+  max-height: min(640px, calc(100dvh - 32px));
+  /* The reset's `* { margin: 0 }` would undo the UA's centering. */
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  border-radius: var(--radius-xl);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+}
+
+.dialog::backdrop {
+  /* Older engines don't inherit custom properties into ::backdrop. */
+  background: var(--color-backdrop, rgb(15 15 15 / 0.4));
+}
+
+.dialog[open] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 150ms ease,
+    transform 150ms ease;
+}
+
+@starting-style {
+  .dialog[open] {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-2) var(--space-5);
+}
+
+.title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.description {
+  padding: 0 var(--space-5);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.body {
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-2) var(--space-5) var(--space-5);
+}

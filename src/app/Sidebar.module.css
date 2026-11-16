@@ -1,0 +1,223 @@
+.sidebar {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  background: var(--color-bg-sidebar);
+  border-right: 1px solid var(--color-border);
+}
+
+/* Collapsed (wide): the grid column shrinks to 0 and clips the content. */
+.hidden {
+  overflow: hidden;
+  border-right-color: transparent;
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  /* Fixed, so the content doesn't reflow while the column animates. Minus the border. */
+  width: calc(var(--sidebar-width) - 1px);
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Narrow screens: an overlay drawer. */
+.drawer {
+  position: fixed;
+  inset-block: 0;
+  left: 0;
+  z-index: 30;
+  width: min(var(--sidebar-width), calc(100vw - 48px));
+  border-right: none;
+  box-shadow: var(--shadow-lg);
+  transform: none;
+  transition: transform 200ms ease;
+}
+
+.drawer.hidden {
+  visibility: hidden;
+  box-shadow: none;
+  transform: translateX(-100%);
+  transition:
+    transform 200ms ease,
+    visibility 0s 200ms;
+}
+
+.drawer .inner {
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  height: 45px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+}
+
+.workspace {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.hideButton {
+  margin-left: auto;
+}
+
+.mockButton {
+  color: var(--color-text-accent);
+}
+
+.nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-1) var(--space-2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 30px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+  text-decoration: none;
+}
+
+.link:hover,
+.link[aria-expanded="true"] {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.link[aria-current="page"] {
+  background: var(--color-bg-active);
+  color: var(--color-text);
+}
+
+.link:focus-visible {
+  outline-offset: -2px;
+}
+
+.link svg {
+  flex: none;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drawer .link {
+  height: 40px;
+}
+
+.sectionMessage {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.sectionLabel {
+  margin: var(--space-4) var(--space-2) var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.footer {
+  flex: none;
+  padding: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Resize handle: an 8px hit area straddling the right border. */
+.resizer {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  bottom: 0;
+  z-index: 2;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.resizer::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: 3px;
+  width: 2px;
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+.resizer:hover::after,
+.resizer:focus-visible::after,
+.resizer[data-active]::after {
+  background: var(--color-accent);
+}
+
+.resizer:focus-visible {
+  outline: none;
+}
+
+.linkHint {
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.link:hover .linkHint,
+.link:focus-visible .linkHint {
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  .linkHint {
+    display: none;
+  }
+}
+
+/* Desktop: the header moves the window, and on macOS makes room for the traffic lights. */
+:global(.desktop) .sidebar {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+:global(.titlebar-overlay:not(.fullscreen)) .header {
+  padding-left: 78px;
+}
+
+/* The traffic lights stand in for the logo there. */
+:global(.titlebar-overlay:not(.fullscreen)) .header > :first-child {
+  display: none;
+}

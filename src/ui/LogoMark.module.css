@@ -1,0 +1,12 @@
+.mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  border-radius: 28%;
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+
+.mark svg {
+  stroke-width: 1.9;
+}

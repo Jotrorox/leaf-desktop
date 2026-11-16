@@ -1,0 +1,44 @@
+.topbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  height: 45px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+@media (max-width: 767px) {
+  .topbar {
+    padding-left: var(--space-2);
+  }
+}
+
+.saveStatus {
+  margin-right: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.saveStatus[data-status="error"],
+.saveStatus[data-status="offline"] {
+  color: var(--color-text-danger);
+}
+
+/* Desktop: the bar moves the window; with the sidebar hidden it's the window's top-left, under the traffic lights. */
+:global(.desktop) .topbar {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+:global(.titlebar-overlay:not(.fullscreen)) .leading {
+  padding-left: 80px;
+}

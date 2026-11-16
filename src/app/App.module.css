@@ -1,0 +1,100 @@
+.shell {
+  --sidebar-width: 240px;
+
+  display: grid;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  /* One viewport-tall row, so <main> scrolls instead of the document. */
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  transition: grid-template-columns 200ms ease;
+}
+
+.collapsed {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+
+.resizing {
+  cursor: col-resize;
+  transition: none;
+  user-select: none;
+}
+
+/* Narrow: the sidebar is a fixed drawer, out of the grid. */
+.narrow {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  background: var(--color-bg);
+}
+
+.scroller {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Lets content break out of the column to the scroller's full width (page
+   covers, databases). On the scroller itself, 100cqw would include its
+   vertical scrollbar and push the page sideways. */
+.frame {
+  container-type: inline-size;
+}
+
+.scroller:focus {
+  outline: none;
+}
+
+.content {
+  /* Read by content that reaches up to the top edge (page covers). */
+  --content-padding-top: var(--space-12);
+
+  max-width: 720px;
+  margin-inline: auto;
+  padding: var(--content-padding-top) var(--space-6) var(--space-16);
+}
+
+.narrow .content {
+  --content-padding-top: var(--space-6);
+
+  padding: var(--content-padding-top) var(--space-4) var(--space-12);
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: var(--color-backdrop);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 200ms ease,
+    visibility 0s 200ms;
+}
+
+.scrimVisible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 200ms ease;
+}
+
+.skipLink {
+  position: fixed;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 50;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-md);
+  font-size: var(--font-size-sm);
+  transform: translateY(-200%);
+}
+
+.skipLink:focus {
+  transform: none;
+}

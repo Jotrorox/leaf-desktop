@@ -1,0 +1,42 @@
+[workspace]
+resolver = "3"
+members = ["src-tauri"]
+
+[workspace.package]
+# Bumped together with tauri.conf.json and package.json by `mise run release <version>`.
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100"
+authors = ["Johannes Mueller"]
+publish = false
+
+[workspace.dependencies]
+# Pinned exactly: the Tauri crate must stay in lockstep with @tauri-apps/cli.
+tauri = { version = "=2.12.6", features = [] }
+tauri-build = { version = "=2.7.5", features = [] }
+tauri-plugin-opener = "=2.7.3"
+tauri-plugin-deep-link = "=2.6.3"
+tauri-plugin-single-instance = { version = "=2.5.5", features = ["deep-link"] }
+tauri-plugin-window-state = "=2.5.0"
+# One pooled HTTP/2 client for the API and Clerk (rustls + the OS trust store).
+reqwest = { version = "0.13.5", features = ["gzip", "brotli"] }
+tokio = { version = "1.54.1", features = ["sync", "macros", "time"] }
+tokio-tungstenite = { version = "0.30.0", features = ["rustls-tls-native-roots"] }
+rustls = { version = "0.23.46", default-features = false, features = ["aws_lc_rs", "std", "tls12", "logging"] }
+futures-util = { version = "0.3.34", default-features = false, features = ["sink", "std"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+url = "2.5.8"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true

@@ -1,0 +1,118 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+# Never cancel a half-uploaded release.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create-release:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.release.outputs.id }}
+    steps:
+      - name: Create or reuse draft release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if id=$(gh release view "$TAG" --json databaseId --jq .databaseId 2>/dev/null); then
+            echo "Reusing existing release $id for $TAG"
+          else
+            gh release create "$TAG" --draft --verify-tag --generate-notes --title "leaf $TAG"
+            id=$(gh release view "$TAG" --json databaseId --jq .databaseId)
+          fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+  desktop:
+    name: Desktop (${{ matrix.name }})
+    needs: create-release
+    # Signing secrets live in the `release` environment, which only `v*` tags may use.
+    environment: release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS universal
+            os: macos-latest
+            rust-targets: aarch64-apple-darwin x86_64-apple-darwin
+            args: --target universal-apple-darwin
+          - name: Windows x64
+            os: windows-latest
+            rust-targets: ""
+            args: ""
+          - name: Linux x64
+            os: ubuntu-22.04
+            rust-targets: ""
+            args: --bundles appimage,deb
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+        with:
+          rust-targets: ${{ matrix.rust-targets }}
+          cache-key: release
+
+      - name: Install front-end dependencies
+        run: mise run setup
+
+      # Signing is optional: secrets are only exported when all required ones
+      # exist, so forks and fresh repos still produce (ad-hoc signed) builds.
+      - name: Configure macOS signing and notarization (optional)
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          put() { printf '%s<<__EOF__\n%s\n__EOF__\n' "$1" "$2" >> "$GITHUB_ENV"; }
+          if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_CERTIFICATE_PASSWORD" ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+            put APPLE_CERTIFICATE "$APPLE_CERTIFICATE"
+            put APPLE_CERTIFICATE_PASSWORD "$APPLE_CERTIFICATE_PASSWORD"
+            put APPLE_SIGNING_IDENTITY "$APPLE_SIGNING_IDENTITY"
+            echo "Code signing enabled."
+            if [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+              put APPLE_ID "$APPLE_ID"
+              put APPLE_PASSWORD "$APPLE_PASSWORD"
+              put APPLE_TEAM_ID "$APPLE_TEAM_ID"
+              echo "Notarization enabled."
+            else
+              echo "::notice::APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID not set: signed but not notarized."
+            fi
+          else
+            echo "::notice::Apple signing secrets not set: building an ad-hoc signed, un-notarized app."
+          fi
+
+      - name: Build and upload bundles
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tauriScript: pnpm tauri
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          tagName: ${{ github.ref_name }}
+          releaseDraft: true
+          args: ${{ matrix.args }}

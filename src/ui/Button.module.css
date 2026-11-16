@@ -1,0 +1,78 @@
+.button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1-5);
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.button:hover {
+  background: var(--color-bg-hover);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.primary {
+  border-color: transparent;
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+
+.primary:hover {
+  background: var(--color-accent-hover);
+}
+
+.ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+.danger {
+  border-color: transparent;
+  background: var(--color-danger);
+  color: var(--color-text-on-accent);
+}
+
+.danger:hover {
+  background: var(--color-danger-hover);
+}
+
+/* Icon-only */
+.icon {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+}
+
+.icon:hover,
+.icon[aria-expanded="true"] {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.small {
+  width: 24px;
+  height: 24px;
+}
+
+@media (pointer: coarse) {
+  .icon {
+    width: 40px;
+    height: 40px;
+  }
+}

@@ -1,0 +1,5 @@
+[toolchain]
+# Pinned for reproducible builds. Bump deliberately (Dependabot does not track this file).
+channel = "1.100.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

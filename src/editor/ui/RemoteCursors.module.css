@@ -1,0 +1,74 @@
+/* Other people's cursors and selections, over the editor's text. */
+
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.selection {
+  position: absolute;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--cursor-color) 22%, transparent);
+}
+
+.caret {
+  position: absolute;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 1px;
+  background: var(--cursor-color);
+}
+
+/* A dot on top of the caret, so a caret without its name still stands out. */
+.caret::before {
+  position: absolute;
+  top: -3px;
+  left: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cursor-color);
+  content: "";
+}
+
+.label {
+  position: absolute;
+  bottom: 100%;
+  left: -1px;
+  max-width: 180px;
+  margin-bottom: 2px;
+  padding: 1px 6px;
+  overflow: hidden;
+  border-radius: 4px 4px 4px 0;
+  background: var(--cursor-color);
+  color: #ffffff;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.label[data-flip] {
+  top: 100%;
+  bottom: auto;
+  margin-top: 2px;
+  margin-bottom: 0;
+  border-radius: 0 4px 4px 4px;
+}
+
+.label[data-visible] {
+  opacity: 1;
+  transition-duration: 80ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .label {
+    transition: none;
+  }
+}

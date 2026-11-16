@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+
+    /*
+     * The UI is the leaf web app's JavaScript, typed with JSDoc. Files opt in
+     * with `// @ts-check` (as in the web app), checked with TypeScript's
+     * default (non-strict) rules, which is what that code is written against.
+     */
+    "allowJs": true,
+    "checkJs": false,
+    "strict": false,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"],
+  /* Tests run under `node --test` and lean on Node's own types. */
+  "exclude": [
+    "src/**/*.test.js",
+    "src/api/test-backend.js",
+    "src/editor/model/fuzz-harness.js",
+    "src/node-test.d.ts"
+  ]
+}

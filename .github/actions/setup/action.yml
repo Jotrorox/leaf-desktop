@@ -1,0 +1,72 @@
+name: Set up toolchains
+description: >-
+  Install the tools pinned in mise.toml, the Rust toolchain from
+  rust-toolchain.toml, Tauri's Linux system packages, and restore the Cargo
+  and pnpm caches.
+
+inputs:
+  rust-targets:
+    description: Extra rustup targets to install (space-separated).
+    required: false
+    default: ""
+  tauri-system-deps:
+    description: Install the Linux packages Tauri needs (ignored on macOS/Windows).
+    required: false
+    default: "true"
+  cache-key:
+    description: Extra key segment for the Cargo cache.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    # https://v2.tauri.app/start/prerequisites/#linux (Debian/Ubuntu), plus
+    # patchelf and xdg-utils for AppImage bundling.
+    - name: Install Tauri system dependencies
+      if: runner.os == 'Linux' && inputs.tauri-system-deps == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          build-essential curl wget file \
+          libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev \
+          libxdo-dev libssl-dev patchelf xdg-utils
+
+    - name: Install mise tools (node, pnpm, actionlint, ...)
+      uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
+      with:
+        version: 2026.11.9
+        install: true
+        cache: true
+
+    - name: Install Rust toolchain (rust-toolchain.toml)
+      shell: bash
+      env:
+        RUST_TARGETS: ${{ inputs.rust-targets }}
+      run: |
+        rustup toolchain install
+        if [ -n "$RUST_TARGETS" ]; then
+          # shellcheck disable=SC2086 # intentional word splitting
+          rustup target add $RUST_TARGETS
+        fi
+        rustc --version
+        cargo --version
+
+    - name: Cache Cargo
+      uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      with:
+        key: ${{ inputs.cache-key }}
+
+    - name: Locate pnpm store
+      id: pnpm-store
+      shell: bash
+      run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+    - name: Cache pnpm store
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.pnpm-store.outputs.path }}
+        key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          pnpm-store-${{ runner.os }}-

@@ -1,0 +1,86 @@
+.page {
+  min-height: 100%;
+}
+
+/* Room on the left for the editor's block handle when the column is narrow. */
+@media (pointer: fine) {
+  @container (max-width: 820px) {
+    .page {
+      padding-left: 28px;
+    }
+  }
+}
+
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-6);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--tag-red-bg);
+  color: var(--tag-red-fg);
+}
+
+.bannerText {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.bannerActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: calc(28px + var(--space-2));
+}
+
+.skeleton span {
+  width: 60%;
+  height: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-hover);
+  animation: pulse 1.2s ease-in-out infinite alternate;
+}
+
+.skeleton .skeletonTitle {
+  width: 45%;
+  height: 40px;
+  margin-bottom: var(--space-4);
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.5;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.message {
+  padding-top: var(--space-8);
+}
+
+.messageTitle {
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.messageText {
+  color: var(--color-text-secondary);
+}
+
+.messageActions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}

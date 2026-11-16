@@ -1,0 +1,99 @@
+/* Layout only while open: `display` here would override the closed popover's `display: none`. */
+.picker:popover-open {
+  display: flex;
+  flex-direction: column;
+}
+
+.picker {
+  width: 316px;
+  max-width: calc(100vw - 16px);
+  padding: 0;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  font-size: var(--font-size-sm);
+}
+
+.search:focus {
+  border-color: var(--color-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-accent-subtle);
+}
+
+.remove {
+  height: 28px;
+  padding: 0 var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+.grid {
+  min-height: 0;
+  max-height: 300px;
+  padding: var(--space-1) var(--space-2) var(--space-2);
+  overflow-y: auto;
+}
+
+.groupLabel {
+  margin: var(--space-2) var(--space-1) var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 34px);
+  gap: 2px;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.cell:hover,
+.cell:focus-visible {
+  background: var(--color-bg-hover);
+}
+
+.cell:focus-visible {
+  outline-offset: -2px;
+}
+
+.cell[aria-pressed="true"] {
+  background: var(--color-accent-subtle);
+}
+
+.empty {
+  padding: var(--space-4) var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}

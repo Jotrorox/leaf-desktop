@@ -1,0 +1,62 @@
+.breadcrumbs {
+  min-width: 0;
+}
+
+.list {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.separator {
+  flex: none;
+  margin: 0 var(--space-0-5);
+  color: var(--color-text-secondary);
+}
+
+.link,
+.current {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  max-width: 220px;
+  padding: var(--space-0-5) var(--space-1-5);
+  border-radius: var(--radius-sm);
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.link {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.link:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.current {
+  color: var(--color-text);
+}
+
+/* Phones: just the current page. */
+@media (max-width: 767px) {
+  .item:not(:last-child),
+  .item:last-child .separator {
+    display: none;
+  }
+}

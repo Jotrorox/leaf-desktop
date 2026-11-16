@@ -1,0 +1,94 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.8/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": ["**", "!**/src-tauri/gen", "!**/src-tauri/icons", "!**/public/*.svg"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "linter": {
+    "enabled": true,
+    "domains": {
+      "solid": "recommended"
+    },
+    "rules": {
+      "preset": "recommended",
+      "a11y": {
+        "noRedundantRoles": "off",
+        "useSemanticElements": "off",
+        "useValidAnchor": "off",
+        "useAriaPropsSupportedByRole": "off",
+        "useValidAriaValues": "off",
+        "noNoninteractiveTabindex": "off"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/api/mock/**"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noAssignInExpressions": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/**", "!src/desktop/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useFocusableInteractive": "off",
+            "useKeyWithClickEvents": "off",
+            "noStaticElementInteractions": "off",
+            "useAriaPropsForRole": "off",
+            "useHeadingContent": "off",
+            "noNoninteractiveElementToInteractiveRole": "off"
+          },
+          "complexity": {
+            "useOptionalChain": "off",
+            "noCommaOperator": "off",
+            "noImportantStyles": "off",
+            "useLiteralKeys": "off",
+            "noBannedTypes": "off"
+          },
+          "style": {
+            "noDescendingSpecificity": "off",
+            "useTemplate": "off"
+          },
+          "suspicious": {
+            "noAssignInExpressions": "off",
+            "useIterableCallbackReturn": "off",
+            "noShadowRestrictedNames": "off"
+          }
+        }
+      }
+    }
+  ]
+}

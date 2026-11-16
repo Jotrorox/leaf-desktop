@@ -1,0 +1,44 @@
+# --- Rust ---
+/target/
+**/target/
+**/*.rs.bk
+*.pdb
+
+# --- Node / front end ---
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+.vite/
+.pnpm-store/
+npm-debug.log*
+pnpm-debug.log*
+
+# --- Tauri ---
+# Capability JSON schemas are regenerated on every build.
+src-tauri/gen/schemas/
+
+# --- Secrets / env ---
+# `.env` and `.env.mock` hold public build settings and are committed;
+# local overrides go in `.env.local` / `.env.*.local`.
+.env.local
+.env.*.local
+*.p12
+*.pfx
+*.key
+
+# --- Local tool config ---
+mise.local.toml
+.mise.local.toml
+
+# --- OS / editors ---
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+.idea/
+*.swp
+*~
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

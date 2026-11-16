@@ -1,0 +1,8 @@
+/*
+ * KaTeX next to the app's base styles. base.css caps every svg at its
+ * container's width, but KaTeX draws some accents (the arrow of \vec) as an
+ * svg inside a box of zero width, which the cap shrinks to nothing.
+ */
+.katex svg {
+  max-width: none;
+}

@@ -1,0 +1,22 @@
+.icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  color: var(--color-text-secondary);
+}
+
+.emoji {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: calc(var(--icon-size) * 0.85);
+  line-height: 1;
+}
+
+.image {
+  width: var(--icon-size, 1em);
+  height: var(--icon-size, 1em);
+  border-radius: 3px;
+  object-fit: cover;
+}

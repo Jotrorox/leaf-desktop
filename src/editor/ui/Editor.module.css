@@ -1,0 +1,787 @@
+/*
+ * The page editor. Blocks are rows (an optional marker, then the text);
+ * children sit below their block, indented by one marker column.
+ */
+
+.editor {
+  --marker-width: 24px;
+
+  position: relative;
+  --block-gap: 2px;
+
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+}
+
+.content {
+  min-height: 1.5em;
+  outline: none;
+  caret-color: var(--color-text);
+  overflow-wrap: break-word;
+}
+
+.content ::selection {
+  background: var(--color-selection);
+}
+
+/* Clicking below the last block puts the caret in an empty line there. */
+.tail {
+  min-height: max(120px, 30vh);
+  cursor: text;
+}
+
+.block {
+  position: relative;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  min-height: 1.5em;
+  margin: var(--block-gap) 0;
+  padding: 3px 2px;
+}
+
+.text {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 1px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.text:focus {
+  outline: none;
+}
+
+/* Placeholder: drawn out of flow, so the caret stays at the start. */
+.text[data-empty][data-show-placeholder]::before {
+  position: absolute;
+  inset: 0 auto auto 0;
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+  content: attr(data-placeholder);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.children {
+  padding-left: var(--marker-width);
+}
+
+/* Markers (bullet, number, checkbox, toggle arrow, callout icon). */
+.marker {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--marker-width);
+  min-height: 1.5em;
+  margin-right: 2px;
+  user-select: none;
+}
+
+.number {
+  justify-content: flex-end;
+  padding-right: 6px;
+  width: auto;
+  min-width: var(--marker-width);
+  font-variant-numeric: tabular-nums;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--color-accent);
+  cursor: pointer;
+}
+
+.checked .text {
+  color: var(--color-text-secondary);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, currentColor 60%, transparent);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  transition: transform 120ms ease;
+}
+
+.toggle:hover {
+  background: var(--color-bg-hover);
+}
+
+.toggleOpen {
+  transform: rotate(90deg);
+}
+
+/* Types */
+.type_h1 {
+  margin-top: 1.4em;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.type_h2 {
+  margin-top: 1.1em;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.type_h3 {
+  margin-top: 0.8em;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.type_h1 .marker,
+.type_h2 .marker,
+.type_h3 .marker {
+  min-height: var(--line-height-tight);
+}
+
+.block:first-child > .type_h1,
+.block:first-child > .type_h2,
+.block:first-child > .type_h3 {
+  margin-top: var(--block-gap);
+}
+
+.type_quote {
+  padding-left: 14px;
+  border-left: 3px solid currentColor;
+  font-size: 1.05em;
+}
+
+.type_code {
+  padding: var(--space-4) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sidebar);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  tab-size: 2;
+}
+
+.type_code .text {
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.type_callout {
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--tag-gray-bg);
+}
+
+.calloutIcon {
+  font-size: 1.2em;
+}
+
+.calloutChildren {
+  margin-top: calc(-1 * var(--space-4) - var(--block-gap));
+  padding: 0 var(--space-4) var(--space-3) calc(var(--space-3) + var(--marker-width) + 2px);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: var(--tag-gray-bg);
+}
+
+/*
+ * Equations: the formula, centred; while it's edited, its TeX source
+ * (styled like code) and a small bar below it. Otherwise the source is
+ * hidden, and arrowing into the block opens it (editor.js).
+ */
+.type_equation {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1-5);
+}
+
+.type_equation:not([data-editing]) > .text {
+  display: none;
+}
+
+.type_equation > .text {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sidebar);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+  tab-size: 2;
+}
+
+.type_equation > .text[data-empty][data-show-placeholder]::before {
+  inset: var(--space-3) auto auto var(--space-4);
+}
+
+.equation {
+  min-height: 2.75em;
+  padding: var(--space-2) var(--space-3);
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: var(--radius-md);
+  text-align: center;
+  user-select: none;
+  transition: background-color 120ms ease;
+}
+
+.content[contenteditable="true"] .equation {
+  cursor: pointer;
+}
+
+.content[contenteditable="true"] .type_equation:not([data-editing]) > .equation:hover {
+  background: var(--color-bg-hover);
+}
+
+.type_equation[data-editing] > .equation {
+  cursor: text;
+}
+
+.equation[data-state="empty"] {
+  display: flex;
+  align-items: center;
+  background: var(--color-bg-sidebar);
+  text-align: left;
+}
+
+.equationEmpty {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.type_equation[data-selected] > .equation {
+  background: var(--color-selection);
+}
+
+.equationMath :global(.katex-display) {
+  margin: 0;
+}
+
+/* A numbered equation: its number on the right, as KaTeX draws \tag, with room kept on both sides so the formula stays centred. */
+.equation[data-numbered] {
+  position: relative;
+  padding-inline: 4em;
+}
+
+.equationNumber {
+  position: absolute;
+  top: 50%;
+  right: var(--space-3);
+  transform: translateY(-50%);
+  font-family: KaTeX_Main, "Times New Roman", serif;
+  font-size: 1.21em;
+  white-space: nowrap;
+}
+
+.equationStale {
+  opacity: 0.35;
+}
+
+.equationSource {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+}
+
+.equationError {
+  margin-top: var(--space-1);
+  color: var(--color-text-danger);
+  font-size: var(--font-size-xs);
+  white-space: normal;
+}
+
+.equationBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  user-select: none;
+}
+
+.equationLinks {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.equationHelp {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.equationHelp:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+.equationNote {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.equationDone {
+  height: 26px;
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.divider {
+  padding: 9px 2px;
+  user-select: none;
+}
+
+.divider hr {
+  height: 1px;
+  border: none;
+  background: var(--color-border-strong);
+}
+
+/* Inline marks (classes set by view/dom.js). */
+.content :global(.m-bold) {
+  font-weight: var(--font-weight-semibold);
+}
+
+.content :global(.m-italic) {
+  font-style: italic;
+}
+
+.content :global(.m-underline) {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.content :global(.m-strike) {
+  text-decoration: line-through;
+}
+
+.content :global(.m-underline.m-strike) {
+  text-decoration: underline line-through;
+}
+
+.content :global(.m-code) {
+  padding: 0.1em 0.3em;
+  border-radius: var(--radius-sm);
+  background: var(--tag-red-bg);
+  color: var(--tag-red-fg);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+.type_code :global(.m-code) {
+  padding: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+}
+
+.content :global(.m-link) {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+  text-underline-offset: 0.15em;
+  cursor: text;
+}
+
+.content[contenteditable="false"] :global(.m-link) {
+  cursor: pointer;
+}
+
+/* Inline math: one formula, edited in a popover (MathPopover.jsx). */
+/* After a formula that ends a line: holds the caret (view/dom.js). Undoes base.css's block images. */
+.content img[data-separator] {
+  display: inline;
+  width: 0;
+  height: 0;
+  margin: 0;
+  border: 0;
+}
+
+.content :global(.m-math) {
+  padding: 0 2px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: background-color 120ms ease;
+}
+
+.content :global(.m-math .katex) {
+  font-size: 1.1em;
+}
+
+.content[contenteditable="true"] :global(.m-math) {
+  cursor: pointer;
+}
+
+.content[contenteditable="true"] :global(.m-math:hover) {
+  background: var(--color-bg-hover);
+}
+
+.content :global(.m-math[data-selected]) {
+  background: var(--color-selection);
+}
+
+/* The selection's own highlight would box each glyph; data-selected paints the whole formula instead. */
+.content :global(.m-math) ::selection,
+.equation ::selection {
+  background: transparent;
+}
+
+.content :global(.m-math[data-math-state]) {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+.content :global(.m-math[data-math-state="pending"]) {
+  color: var(--color-text-secondary);
+}
+
+.content :global(.m-math[data-math-state="error"]) {
+  color: var(--color-text-danger);
+  text-decoration: underline wavy;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+/* Loading, empty and errors */
+.empty {
+  color: var(--color-text-secondary);
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-1);
+}
+
+.skeleton span {
+  width: 70%;
+  height: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-hover);
+  animation: pulse 1.2s ease-in-out infinite alternate;
+}
+
+.skeleton span:nth-child(2) {
+  width: 55%;
+}
+
+.skeleton span:nth-child(3) {
+  width: 62%;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.5;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.message {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-text-secondary);
+}
+
+/* Link dialog */
+.linkForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.linkInput {
+  width: 100%;
+  height: 36px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.linkInput:focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -1px;
+}
+
+.linkActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* Touch: roomier rows. */
+@media (pointer: coarse) {
+  .row {
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .type_code,
+  .type_callout {
+    align-items: flex-start;
+  }
+
+  .type_equation {
+    align-items: stretch;
+  }
+
+  .equationDone {
+    height: 44px;
+    padding: 0 var(--space-5);
+    font-size: var(--font-size-sm);
+  }
+}
+
+/* Links to pages in the link dialog */
+.linkPages {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.linkPage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.linkPage:hover,
+.linkPage:focus-visible {
+  background: var(--color-bg-hover);
+  outline: none;
+}
+
+.linkPageIcon {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  width: 20px;
+  color: var(--color-text-secondary);
+}
+
+.linkPageTitle {
+  flex: none;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkPagePath {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Page mentions */
+.content :global(.m-mention) {
+  color: inherit;
+  font-weight: var(--font-weight-medium);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 30%, transparent);
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+/* Blocks picked in the block menu or being dragged */
+.block[data-highlighted] > .row,
+.block[data-highlighted] > .divider {
+  border-radius: var(--radius-sm);
+  background: var(--color-selection);
+}
+
+.row[data-color$="_background"] {
+  border-radius: var(--radius-sm);
+}
+
+/*
+ * Tables. The grid scrolls sideways when it's wider than the page; the
+ * frame around it leaves room for the + buttons on its right and below,
+ * and the scroller's padding for the row and column handles.
+ */
+.table {
+  margin: calc(var(--block-gap) + 4px) 0;
+}
+
+.tableScroll {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: -8px 0 0 -8px;
+  padding: 8px 0 0 8px;
+}
+
+.tableFrame {
+  position: relative;
+  display: inline-block;
+  min-width: calc(100% - 8px);
+  padding: 0 22px 22px 0;
+  vertical-align: top;
+}
+
+.tableGrid {
+  border-collapse: collapse;
+}
+
+.cell,
+.cellGap {
+  min-width: 120px;
+  padding: 6px 9px;
+  border: 1px solid var(--color-border-strong);
+  vertical-align: top;
+  text-align: start;
+}
+
+.cell .text {
+  min-height: 1.5em;
+}
+
+.cellGap {
+  background: repeating-linear-gradient(-45deg, transparent 0 6px, var(--color-bg-hover) 6px 7px);
+}
+
+.tableGrid[data-header-row] tr:first-child > .cell,
+.tableGrid[data-header-column] tr > .cell:first-child {
+  background: var(--color-bg-sidebar);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tableAdd {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.table:hover .tableAdd,
+.tableAdd:focus-visible {
+  opacity: 1;
+}
+
+.tableAdd:hover {
+  background: var(--color-bg-active);
+  color: var(--color-text);
+}
+
+.tableAddColumn {
+  top: 0;
+  right: 0;
+  bottom: 22px;
+  width: 18px;
+}
+
+.tableAddRow {
+  right: 22px;
+  bottom: 0;
+  left: 0;
+  height: 18px;
+}
+
+/* On the active cell's left edge (row) and top edge (column). */
+.tableHandle {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.rowHandle {
+  left: 8px;
+  width: 16px;
+  transform: translateX(-50%);
+}
+
+.columnHandle {
+  top: 8px;
+  height: 16px;
+  transform: translateY(-50%);
+}
+
+.tableHandleDots {
+  width: 22px;
+  height: 11px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-elevated);
+  background-image: radial-gradient(circle, currentColor 1.1px, transparent 1.4px);
+  background-position: center;
+  background-size: 6px 100%;
+  background-repeat: space no-repeat;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.rowHandle .tableHandleDots {
+  width: 11px;
+  height: 22px;
+  background-size: 100% 6px;
+  background-repeat: no-repeat space;
+}
+
+.tableHandle:hover .tableHandleDots,
+.tableHandle[aria-expanded="true"] .tableHandleDots {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent);
+  color: white;
+}
+
+@media (pointer: coarse) {
+  .tableAdd {
+    opacity: 1;
+  }
+}

@@ -1,0 +1,795 @@
+/*
+ * The editor's floating UI: slash and mention menus, the inline toolbar,
+ * the block handle and its drop line, and the mobile toolbar.
+ */
+
+/* A manual popover (Floating.jsx sets top, left and max-height). */
+.floating {
+  position: fixed;
+  inset: auto;
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  box-shadow: var(--shadow-lg);
+  user-select: none;
+}
+
+.floating:popover-open {
+  opacity: 1;
+  transition: opacity 100ms ease;
+}
+
+@starting-style {
+  .floating:popover-open {
+    opacity: 0;
+  }
+}
+
+/* Slash and mention menus */
+.menu {
+  width: min(320px, calc(100vw - 16px));
+  padding: var(--space-1);
+}
+
+.groupLabel {
+  padding: var(--space-2) var(--space-2) var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.optionCompact {
+  min-height: 36px;
+}
+
+.optionActive {
+  background: var(--color-bg-hover);
+}
+
+.tile {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: var(--font-weight-medium);
+}
+
+.pageIcon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  color: var(--color-text-secondary);
+  font-size: 16px;
+}
+
+.optionText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.optionLabel,
+.optionDescription {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionDescription {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.hint {
+  flex: none;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.empty {
+  padding: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+/* TeX command completion (TexMenu.jsx): in an equation's source and the formula popover. */
+.texMenu {
+  width: min(260px, calc(100vw - 16px));
+}
+
+.texList {
+  max-height: 296px;
+  overflow-y: auto;
+}
+
+.texPreview {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 28px;
+  overflow: hidden;
+  color: var(--color-text);
+}
+
+.texPreview :global(.katex) {
+  font-size: 0.95em;
+}
+
+.texName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Inline toolbar */
+.toolbarPanel {
+  padding: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: var(--space-1);
+}
+
+.toolButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 var(--space-1-5);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.toolButton:hover {
+  background: var(--color-bg-hover);
+}
+
+.toolButton[aria-pressed="true"] {
+  color: var(--color-text-accent);
+}
+
+.toolButtonWide {
+  padding: 0 var(--space-2);
+  white-space: nowrap;
+}
+
+.chevronDown {
+  transform: rotate(90deg);
+  color: var(--color-text-secondary);
+}
+
+.toolDivider {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  margin: 0 var(--space-1);
+  background: var(--color-border);
+}
+
+.glyphBold {
+  font-weight: var(--font-weight-bold);
+}
+
+.glyphItalic {
+  font-family: Georgia, serif;
+  font-style: italic;
+}
+
+.glyphUnderline {
+  text-decoration: underline;
+}
+
+.glyphStrike {
+  text-decoration: line-through;
+}
+
+.glyphCode {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.colorGlyph {
+  padding: 0 3px;
+  border-bottom: 2px solid currentColor;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
+}
+
+.subPanel {
+  display: flex;
+  flex-direction: column;
+  max-height: 280px;
+  padding: var(--space-1);
+  overflow: auto;
+  border-top: 1px solid var(--color-border);
+}
+
+.subItem {
+  min-height: 30px;
+  padding: 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.subItem:hover {
+  background: var(--color-bg-hover);
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(5, 32px);
+  gap: var(--space-1);
+  padding: 0 var(--space-2) var(--space-2);
+}
+
+.swatch,
+.menuSwatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.swatch {
+  width: 32px;
+  height: 32px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.swatch[aria-checked="true"] {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.menuSwatch {
+  width: 22px;
+  height: 22px;
+  font-size: 12px;
+}
+
+/* Colors (text color, or `_background`), shared by marks, blocks and swatches. */
+:global([data-color="gray"]) {
+  color: var(--tag-gray-fg);
+}
+:global([data-color="brown"]) {
+  color: var(--tag-brown-fg);
+}
+:global([data-color="orange"]) {
+  color: var(--tag-orange-fg);
+}
+:global([data-color="yellow"]) {
+  color: var(--tag-yellow-fg);
+}
+:global([data-color="green"]) {
+  color: var(--tag-green-fg);
+}
+:global([data-color="blue"]) {
+  color: var(--tag-blue-fg);
+}
+:global([data-color="purple"]) {
+  color: var(--tag-purple-fg);
+}
+:global([data-color="pink"]) {
+  color: var(--tag-pink-fg);
+}
+:global([data-color="red"]) {
+  color: var(--tag-red-fg);
+}
+:global([data-color="gray_background"]) {
+  background: var(--tag-gray-bg);
+}
+:global([data-color="brown_background"]) {
+  background: var(--tag-brown-bg);
+}
+:global([data-color="orange_background"]) {
+  background: var(--tag-orange-bg);
+}
+:global([data-color="yellow_background"]) {
+  background: var(--tag-yellow-bg);
+}
+:global([data-color="green_background"]) {
+  background: var(--tag-green-bg);
+}
+:global([data-color="blue_background"]) {
+  background: var(--tag-blue-bg);
+}
+:global([data-color="purple_background"]) {
+  background: var(--tag-purple-bg);
+}
+:global([data-color="pink_background"]) {
+  background: var(--tag-pink-bg);
+}
+:global([data-color="red_background"]) {
+  background: var(--tag-red-bg);
+}
+
+/* Block handle */
+.handle {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  height: 24px;
+  transform: translateX(calc(-100% - 4px));
+}
+
+.handleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.handleButton:hover {
+  background: var(--color-bg-hover);
+  opacity: 1;
+}
+
+.grip {
+  width: 18px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.handleDragging .grip {
+  cursor: grabbing;
+}
+
+.dropLine {
+  position: absolute;
+  z-index: 3;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-accent);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.dragPreview {
+  max-width: 320px;
+  padding: var(--space-1) var(--space-2);
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  box-shadow: var(--shadow-md);
+  opacity: 0.9;
+}
+
+.dragCount {
+  margin-left: var(--space-2);
+  color: var(--color-text-secondary);
+}
+
+.menuAnchor {
+  position: absolute;
+  width: 0;
+  pointer-events: none;
+}
+
+/* Mobile toolbar */
+.mobileBar {
+  position: fixed;
+  right: 0;
+  left: 0;
+  z-index: 30;
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding: 0 var(--space-1);
+  overflow-x: auto;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-elevated);
+  scrollbar-width: none;
+}
+
+.mobileBarOpen {
+  display: flex;
+}
+
+.mobileButton {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text);
+  font-size: var(--font-size-lg);
+}
+
+.mobileButton[aria-pressed="true"] {
+  color: var(--color-text-accent);
+}
+
+.mobileButton[aria-disabled="true"] {
+  opacity: 0.4;
+}
+
+/* Inline equation popover (MathPopover.jsx): preview, TeX field, footer. */
+.mathPopover {
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(400px, calc(100vw - 16px));
+  max-width: min(400px, calc(100vw - 16px));
+  padding: var(--space-2);
+}
+
+/* Only while open: a closed popover must keep the UA's display: none. */
+.mathPopover:popover-open {
+  display: flex;
+}
+
+.mathPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: var(--space-2) var(--space-3);
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sidebar);
+  font-size: var(--font-size-md);
+}
+
+.mathPreviewMath :global(.katex) {
+  font-size: 1.2em;
+}
+
+.mathPreviewMath[data-stale] {
+  opacity: 0.35;
+}
+
+.mathPreviewEmpty {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.mathError {
+  max-width: 100%;
+  margin-top: var(--space-1);
+  color: var(--color-text-danger);
+  font-size: var(--font-size-xs);
+  text-align: center;
+}
+
+.mathInput {
+  display: block;
+  width: 100%;
+  min-height: 36px;
+  max-height: 160px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  resize: none;
+}
+
+.mathInput:focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -1px;
+}
+
+.mathInput::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+}
+
+.mathFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-left: var(--space-1);
+}
+
+.mathHelp {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  text-decoration: none;
+}
+
+.mathHelp:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+/* Symbol palette (SymbolPalette.jsx): a segmented control over a grid. */
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.segmented {
+  display: flex;
+  padding: 2px;
+  border-radius: var(--radius-md);
+  /* A recessed track: darker than the popover in both themes. */
+  background: light-dark(var(--color-bg-hover), var(--color-bg));
+}
+
+.segment {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 var(--space-1);
+  overflow: hidden;
+  border: none;
+  border-radius: calc(var(--radius-md) - 2px);
+  background: none;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .segment:hover {
+    color: var(--color-text);
+  }
+
+  .symbol:hover {
+    background: var(--color-bg-active);
+  }
+}
+
+.segment[aria-selected="true"] {
+  background: light-dark(var(--color-bg-elevated), var(--color-bg-active));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+  color: var(--color-text);
+}
+
+.symbols {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 2px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.symbol:focus-visible,
+.segment:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.symbol :global(.katex) {
+  font-size: 1em;
+}
+
+/* Two-row structures (matrices, cases) drawn small enough to fit a cell. */
+.symbol[data-tall] :global(.katex) {
+  font-size: 0.6em;
+}
+
+.mathActions [aria-pressed="true"] {
+  background: var(--color-bg-active);
+  color: var(--color-text);
+}
+
+@media (pointer: coarse) {
+  .segment {
+    height: 36px;
+  }
+
+  .symbols {
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    max-height: 184px;
+  }
+
+  .symbol {
+    height: 44px;
+  }
+}
+
+/* Page macros dialog (MacrosDialog.jsx). */
+.macrosDialog {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.macrosForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.macrosInput {
+  display: block;
+  width: 100%;
+  min-height: 140px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.macrosInput:focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -1px;
+}
+
+.macrosInput::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.6;
+}
+
+.macrosStatus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 20px;
+}
+
+.macrosStatus .mathError {
+  margin: 0;
+  text-align: left;
+}
+
+.macrosHint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+}
+
+.macrosHint code,
+.macrosItem code {
+  font-family: var(--font-mono);
+}
+
+.macrosList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  max-height: 120px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.macrosItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 28px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-hover);
+  font-size: var(--font-size-sm);
+}
+
+.macrosItem code {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.macrosActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+@media (pointer: coarse) {
+  .macrosInput {
+    font-size: var(--font-size-md);
+  }
+}
+
+.mathActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.mathDone {
+  height: 28px;
+}
+
+@media (pointer: coarse) {
+  .mathActions button:not(.mathDone) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .mathDone {
+    height: 44px;
+    padding: 0 var(--space-5);
+  }
+
+  .mathInput {
+    font-size: var(--font-size-md);
+  }
+}

@@ -1,0 +1,25 @@
+# Write exact versions on `pnpm add`, matching the hand-pinned manifests.
+savePrefix: ""
+
+# pnpm refuses packages newer than its minimum release age by default. These
+# exact versions were pinned deliberately while still fresh; entries can be
+# dropped once they are older than the threshold.
+minimumReleaseAgeExclude:
+  - "@tauri-apps/cli-darwin-arm64@2.12.5"
+  - "@tauri-apps/cli-darwin-x64@2.12.5"
+  - "@tauri-apps/cli-linux-arm-gnueabihf@2.12.5"
+  - "@tauri-apps/cli-linux-arm64-gnu@2.12.5"
+  - "@tauri-apps/cli-linux-arm64-musl@2.12.5"
+  - "@tauri-apps/cli-linux-riscv64-gnu@2.12.5"
+  - "@tauri-apps/cli-linux-x64-gnu@2.12.5"
+  - "@tauri-apps/cli-linux-x64-musl@2.12.5"
+  - "@tauri-apps/cli-win32-arm64-msvc@2.12.5"
+  - "@tauri-apps/cli-win32-ia32-msvc@2.12.5"
+  - "@tauri-apps/cli-win32-x64-msvc@2.12.5"
+  - "@tauri-apps/cli@2.12.5"
+  - "@tauri-apps/api@2.12.5"
+
+# Install scripts we don't need (core-js prints an ad, browser-tabs-lock is a no-op).
+allowBuilds:
+  browser-tabs-lock: false
+  core-js: false
