@@ -20,7 +20,7 @@ tauri-plugin-single-instance = { version = "=2.5.5", features = ["deep-link"] }
 tauri-plugin-window-state = "=2.5.0"
 # One pooled HTTP/2 client for the API and Clerk (rustls + the OS trust store).
 reqwest = { version = "0.13.5", features = ["gzip", "brotli"] }
-tokio = { version = "1.54.1", features = ["sync", "macros", "time"] }
+tokio = { version = "1.54.1", features = ["sync", "macros", "time", "net", "io-util"] }
 tokio-tungstenite = { version = "0.30.0", features = ["rustls-tls-native-roots"] }
 rustls = { version = "0.23.46", default-features = false, features = ["aws_lc_rs", "std", "tls12", "logging"] }
 futures-util = { version = "0.3.34", default-features = false, features = ["sink", "std"] }

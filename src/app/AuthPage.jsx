@@ -128,7 +128,7 @@ export default function AuthPage(props) {
                     <button
                       type="button"
                       class={styles.oauthButton}
-                      onClick={() => void signInWithOAuth(strategy)}
+                      onClick={() => void signInWithOAuth(strategy, { redirectUrl: target ?? "/" })}
                     >
                       {provider?.icon()}
                       <span>Continue with {provider?.label}</span>

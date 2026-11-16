@@ -160,6 +160,10 @@ export async function listenForMenu(handlers) {
  */
 export async function listenForDeepLinks(handler) {
   if (!IS_TAURI) return;
+  // Development builds get the sign-in callback through a loopback listener
+  // (`src-tauri/src/oauth.rs`), since macOS only routes `leaf://` to installed apps.
+  const { listen } = await import("@tauri-apps/api/event");
+  await listen("oauth-callback", (event) => handler(String(event.payload)));
   const { getCurrent, onOpenUrl } = await import("@tauri-apps/plugin-deep-link");
   await onOpenUrl((urls) => {
     for (const url of urls) handler(url);

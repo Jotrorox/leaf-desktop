@@ -60,5 +60,10 @@ revealWindow();
 // Clerk after the first frame: it's big, and a remembered session covers the wait.
 requestAnimationFrame(() => setTimeout(() => void startAuth(), 0));
 void listenForDeepLinks((url) => {
-  if (url.startsWith(OAUTH_REDIRECT_URL)) void completeOAuth(url);
+  if (url.startsWith(OAUTH_REDIRECT_URL) || isLoopbackCallback(url)) void completeOAuth(url);
 });
+
+/** The loopback sign-in callback of debug builds (`src-tauri/src/oauth.rs`). @param {string} url */
+function isLoopbackCallback(url) {
+  return /^http:\/\/127\.0\.0\.1:\d+\/sso-callback(\?|$)/.test(url);
+}

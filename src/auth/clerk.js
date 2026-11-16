@@ -83,7 +83,11 @@ import { frontendApiFromKey } from "./scripts.js";
 
 /** The remembered signed-in user, for an instant (and offline) start. */
 const SESSION_KEY = "leaf.session";
-/** Where the system browser sends people back after Sign in with Apple. */
+/**
+ * Where the system browser sends installed builds back after Sign in with
+ * Apple. Development builds get a loopback URL from Rust instead
+ * (`src-tauri/src/oauth.rs`): macOS only routes `leaf://` to an installed app.
+ */
 export const OAUTH_REDIRECT_URL = "leaf://sso-callback";
 const CLIENT_SECRET = "clerk.client";
 /** Whose data the local caches hold (survives an expired session, unlike `leaf.session`). */
@@ -263,6 +267,8 @@ async function loadClerk() {
 
   await instance.load({
     ui,
+    // Browser sign-ins (Apple) go through the system browser (`signInWithOAuth`).
+    __internal_oauthTransport: oauthTransport,
     // Not a cookie-based browser session: no cookies, no dev-browser handshake.
     standardBrowser: false,
     // Offline, clerk-js would otherwise "load" with an empty client, which
@@ -385,13 +391,70 @@ export function oauthStrategies() {
 }
 
 /**
- * Sign in (or up) with an OAuth provider in the system browser, the way
- * Clerk's native SDKs do: start the sign-in with `leaf://sso-callback` as
- * the redirect, open the provider's page in the browser, and finish in
- * `completeOAuth()` when the browser hands the callback back to the app.
- * @param {string} strategy e.g. `oauth_apple`
+ * The browser sign-in waiting for its callback (`oauthTransport.open`).
+ * @type {{ resolve: (value: { callbackUrl: string }) => void, reject: (err: Error) => void } | null}
  */
-export async function signInWithOAuth(strategy) {
+let pendingOAuth = null;
+/** Where Clerk sends people after a browser sign-in (see `callbackParams`). */
+let oauthCallbackParams = callbackParams("/");
+
+/**
+ * Clerk's OAuth transport for apps that can't redirect their own window
+ * (made for Tauri and Electron): Clerk asks for the redirect URL, then hands
+ * over the provider's page to open, and waits for the callback URL.
+ */
+const oauthTransport = {
+  getRedirectUrl: oauthRedirectUrl,
+  /** @param {URL} url */
+  open: (url) =>
+    new Promise((resolve, reject) => {
+      pendingOAuth?.reject(cancelled());
+      pendingOAuth = { resolve, reject };
+      openInBrowser(url.toString()).catch((err) => {
+        pendingOAuth = null;
+        reject(err);
+      });
+    }),
+};
+
+/**
+ * Where Clerk goes once a browser sign-in is back: to `redirectUrl` when it
+ * signed someone in, otherwise to the step that's still missing (a second
+ * factor, a sign-up field, …) on the auth pages, whose Clerk components use
+ * path routing. Without these Clerk would use its hosted pages.
+ * @param {string} redirectUrl
+ */
+function callbackParams(redirectUrl) {
+  return {
+    signInForceRedirectUrl: redirectUrl,
+    signUpForceRedirectUrl: redirectUrl,
+    signInUrl: SIGN_IN_PATH,
+    signUpUrl: SIGN_UP_PATH,
+    firstFactorUrl: `${SIGN_IN_PATH}/factor-one`,
+    secondFactorUrl: `${SIGN_IN_PATH}/factor-two`,
+    resetPasswordUrl: `${SIGN_IN_PATH}/reset-password`,
+    signInProtectCheckUrl: `${SIGN_IN_PATH}/protect-check`,
+    continueSignUpUrl: `${SIGN_UP_PATH}/continue`,
+    verifyEmailAddressUrl: `${SIGN_UP_PATH}/verify-email-address`,
+    verifyPhoneNumberUrl: `${SIGN_UP_PATH}/verify-phone-number`,
+    signUpProtectCheckUrl: `${SIGN_UP_PATH}/protect-check`,
+  };
+}
+
+function cancelled() {
+  return Object.assign(new Error("Sign-in cancelled."), { code: "leaf_oauth_cancelled" });
+}
+
+/**
+ * Sign in (or up) with an OAuth provider in the system browser, the way
+ * Clerk's native SDKs do. Clerk runs the flow through `oauthTransport`: it
+ * starts the sign-in with the app's redirect URL, the provider's page opens
+ * in the browser, and `completeOAuth()` passes the callback back to Clerk,
+ * which then signs in, creates the account, or moves on to a missing step.
+ * @param {string} strategy e.g. `oauth_apple`
+ * @param {{ redirectUrl?: string }} [options] Where to go once signed in.
+ */
+export async function signInWithOAuth(strategy, { redirectUrl = "/" } = {}) {
   const instance = clerk ?? (await startAuth());
   if (!instance?.client) {
     setOAuthState({
@@ -401,30 +464,41 @@ export async function signInWithOAuth(strategy) {
     return;
   }
   setOAuthState({ status: "waiting" });
+  oauthCallbackParams = callbackParams(redirectUrl);
   try {
-    const signIn = instance.client.signIn;
-    await signIn.create({
+    await instance.client.signIn.authenticateWithRedirect({
       strategy,
-      redirectUrl: OAUTH_REDIRECT_URL,
-      actionCompleteRedirectUrl: OAUTH_REDIRECT_URL,
+      // Clerk replaces both with the transport's redirect URL.
+      redirectUrl,
+      redirectUrlComplete: redirectUrl,
+      __internal_callbackParams: oauthCallbackParams,
     });
-    const target = instance.client.signIn.firstFactorVerification?.externalVerificationRedirectURL;
-    if (!target) throw new Error("Clerk didn't return a sign-in page to open.");
-    await openInBrowser(String(target));
+    setOAuthState({ status: "idle" });
   } catch (err) {
+    if (/** @type {any} */ (err)?.code === "leaf_oauth_cancelled") return;
     setOAuthState({ status: "error", message: clerkErrorMessage(err) });
+  } finally {
+    pendingOAuth = null;
   }
+}
+
+/** The redirect URL for a browser sign-in (see `OAUTH_REDIRECT_URL`). */
+async function oauthRedirectUrl() {
+  if (!IS_TAURI) return OAUTH_REDIRECT_URL;
+  const { invoke } = await import("@tauri-apps/api/core");
+  return /** @type {string} */ (await invoke("oauth_redirect_url"));
 }
 
 /** Forget a pending or failed browser sign-in. */
 export function cancelOAuth() {
+  pendingOAuth?.reject(cancelled());
+  pendingOAuth = null;
   setOAuthState({ status: "idle" });
 }
 
 /**
- * Finishes a browser sign-in from its `leaf://sso-callback?…` URL: trade the
- * nonce for the sign-in's result, create the account when the provider's
- * user is new (a "transfer" to sign-up), then activate the session.
+ * Takes a browser sign-in's callback URL (`leaf://sso-callback?…`, or the
+ * loopback one in debug builds) and lets Clerk finish the sign-in.
  * @param {string} url
  */
 export async function completeOAuth(url) {
@@ -439,25 +513,33 @@ export async function completeOAuth(url) {
   // that launches the app still counts).
   const nonce = params.get("rotating_token_nonce") ?? "";
   if (oauthState().status === "finishing" || !markHandled(nonce || url)) return;
-  const instance = clerk ?? (await startAuth());
-  if (!instance?.client) return;
   setOAuthState({ status: "finishing" });
+  if (pendingOAuth) {
+    pendingOAuth.resolve({ callbackUrl: url });
+    pendingOAuth = null;
+    return;
+  }
+  // No sign-in waiting for it: the callback launched the app. Pick up the
+  // sign-in Clerk kept for this client and finish it the way the transport would.
+  const instance = clerk ?? (await startAuth());
+  if (!instance?.client) {
+    setOAuthState({ status: "idle" });
+    return;
+  }
   try {
-    const signIn = instance.client.signIn;
-    await signIn.reload(nonce ? { rotatingTokenNonce: nonce } : undefined);
-    const current = instance.client.signIn;
-    let sessionId = current.createdSessionId ?? null;
-    if (!sessionId && current.firstFactorVerification?.status === "transferable") {
-      await instance.client.signUp.create({ transfer: true });
-      sessionId = instance.client.signUp.createdSessionId ?? null;
-    }
-    if (!sessionId) {
-      const error = current.firstFactorVerification?.error;
+    if (params.get("__clerk_status") === "failed") {
       throw new Error(
-        error?.longMessage ?? error?.message ?? "The sign-in didn't finish. Try again.",
+        params.get("__clerk_error_code") === "oauth_access_denied"
+          ? "You did not grant access to your account."
+          : "The sign-in didn't finish. Try again.",
       );
     }
-    await instance.setActive?.({ session: sessionId });
+    const signIn = instance.client.signIn;
+    await signIn.reload(nonce ? { rotatingTokenNonce: nonce } : undefined);
+    await /** @type {any} */ (instance).__internal_handleResourceCallback(
+      instance.client.signIn,
+      oauthCallbackParams,
+    );
     setOAuthState({ status: "idle" });
   } catch (err) {
     setOAuthState({ status: "error", message: clerkErrorMessage(err) });

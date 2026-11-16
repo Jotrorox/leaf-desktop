@@ -6,12 +6,14 @@
 //! - `net`: HTTP and WebSockets from Rust, so the API and Clerk see a native
 //!   client rather than an unknown browser origin.
 //! - `secrets`: a private file for the Clerk client token.
-//! - Deep links (`leaf://`), for finishing "Sign in with Apple" in the browser.
+//! - Deep links (`leaf://`), for finishing "Sign in with Apple" in the browser
+//!   (`oauth`: a loopback listener stands in for them in development builds).
 //! - A navigation guard: the window only ever shows the app; links to other
 //!   sites open in the default browser.
 //! - Native menus, and the window's size and position remembered.
 
 mod net;
+mod oauth;
 mod secrets;
 
 use std::time::Duration;
@@ -238,6 +240,7 @@ pub fn run() {
             net::ws_connect,
             net::ws_send,
             net::ws_close,
+            oauth::oauth_redirect_url,
             secrets::secret_get,
             secrets::secret_set,
             secrets::secret_delete,

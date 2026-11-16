@@ -16,7 +16,7 @@ desktop app adds:
 - **Clerk as a native client** (`src/auth/clerk.js`): Clerk's JS and UI are bundled
   (no remote scripts), sessions use Clerk's Native API (client token in a private
   file, `src-tauri/src/secrets.rs`), and Sign in with Apple runs in the system browser
-  and returns through `leaf://sso-callback`.
+  and returns through `leaf://sso-callback` (a loopback URL in debug builds).
 - **Desktop behavior.** macOS title bar overlay with the traffic lights in the sidebar,
   native menus (⌘N new page, ⌘, settings, ⌘[ / ⌘] back and forward), the last page
   reopened on launch, window size and position remembered, external links opened in
@@ -52,10 +52,12 @@ VITE_WEB_ORIGIN=http://localhost:5173   # must equal the backend's ALLOWED_ORIGI
 For each Clerk instance the app uses (Native applications page):
 
 - **Native API** must be enabled (it is, for both leaf instances).
-- **Sign in with Apple:** add `leaf://sso-callback` to the allowlist for mobile/native
-  SSO redirects. Until then the Apple button shows Clerk's "redirect url does not match"
-  error; email sign-in works regardless. Deep links only reach installed builds on
-  macOS (`mise run build`), not `tauri dev`.
+- **Sign in with Apple:** add both redirect URLs to the allowlist for mobile/native SSO
+  redirects: `leaf://sso-callback` (installed builds) and
+  `http://127.0.0.1:52184/sso-callback` (debug builds, `mise run dev`). macOS only routes
+  `leaf://` to an installed app, so debug builds receive the callback on a loopback
+  listener instead (`src-tauri/src/oauth.rs`). A missing entry shows Clerk's "redirect
+  url does not match" error; email sign-in works regardless.
 
 ## Releasing
 
