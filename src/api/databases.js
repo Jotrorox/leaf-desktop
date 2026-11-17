@@ -99,7 +99,7 @@ export function deleteProperty(id, propertyId) {
   return request("DELETE", `/v1/databases/${enc(id)}/properties/${enc(propertyId)}`);
 }
 
-/** @typedef {Partial<Pick<View, "name" | "type" | "filter" | "sorts" | "columns" | "group_by" | "card_properties" | "hidden_groups">>} ViewPatch */
+/** @typedef {Partial<Pick<View, "name" | "type" | "filter" | "sorts" | "columns" | "group_by" | "card_properties" | "hidden_groups" | "page_size">>} ViewPatch */
 
 /**
  * `POST /v1/databases/:id/views`

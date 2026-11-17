@@ -31,6 +31,7 @@ import {
   parseColumns,
   parseGroupBy,
   parseHiddenGroups,
+  parsePageSize,
   parseSorts,
   withDefaults,
 } from "../../databases/views.js";
@@ -567,8 +568,8 @@ export function createDb(
   }
 
   /**
-   * Applies `name`, `type`, `filter`, `sorts`, `columns` and the board
-   * settings from a request to a view, like the server's readViewConfig.
+   * Applies `name`, `type`, `filter`, `sorts`, `columns`, the board
+   * settings and `page_size` from a request to a view, like the server's readViewConfig.
    * @param {View} view @param {Record<string, unknown>} input @param {Property[]} schema
    */
   function readViewConfig(view, input, schema) {
@@ -604,6 +605,7 @@ export function createDb(
         input.hidden_groups,
         schema.find((p) => p.id === view.group_by),
       );
+    if ("page_size" in input) view.page_size = parsePageSize(input.page_size);
   }
 
   /** @param {DatabaseRow} db @param {string} propertyId */

@@ -57,7 +57,7 @@ export const ROADMAP_SCHEMA = [
   { id: "notes", name: "Notes", type: "text" },
 ];
 
-const BOARD_DEFAULTS = { group_by: null, card_properties: [], hidden_groups: [] };
+const BOARD_DEFAULTS = { group_by: null, card_properties: [], hidden_groups: [], page_size: null };
 
 /** @type {View[]} */
 export const ROADMAP_VIEWS = [
@@ -98,6 +98,7 @@ export const ROADMAP_VIEWS = [
     group_by: "status",
     card_properties: ["priority", "owner", "due"],
     hidden_groups: [],
+    page_size: null,
   },
 ];
 

@@ -491,6 +491,61 @@
   font-size: var(--font-size-xs);
 }
 
+/* The table's pager. */
+.pager {
+  flex-wrap: wrap;
+  padding-block: var(--space-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.pagerSize {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+.pagerSpacer {
+  flex: 1;
+}
+
+.pagerSelect {
+  height: 26px;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.pagerSelect:focus-visible,
+.pagerButton:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -1px;
+}
+
+.pagerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+}
+
+.pagerButton:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+  color: var(--color-text);
+}
+
+.pagerButton:disabled {
+  opacity: 0.4;
+}
+
 .notice {
   padding-block: var(--space-6);
   color: var(--color-text-secondary);

@@ -24,11 +24,14 @@ import {
   useRows,
 } from "../../data/databases.js";
 import { displayTitle } from "../../data/pages.js";
+import { cx } from "../../lib/cx.js";
 import { scrollParent, startDrag } from "../../lib/dnd.js";
 import ConfirmDialog from "../../ui/ConfirmDialog.jsx";
 import {
   IconArrowDown,
   IconArrowUp,
+  IconChevronLeft,
+  IconChevronRight,
   IconMore,
   IconOpen,
   IconPlus,
@@ -43,6 +46,9 @@ import {
   MAX_COLUMN_WIDTH,
   MIN_COLUMN_WIDTH,
   movedColumns,
+  pageSizeChoices,
+  pageSizeOf,
+  pageSlice,
   withColumn,
 } from "../views.js";
 import styles from "./Database.module.css";
@@ -63,6 +69,7 @@ import { CellValue, PropertyIcon } from "./values.jsx";
 /** @typedef {import("../../api/types.js").Property} Property */
 /** @typedef {import("../../api/types.js").PropertyValue} PropertyValue */
 /** @typedef {import("../../api/types.js").Member} Member */
+/** @typedef {import("../../api/databases.js").ViewPatch} ViewPatch */
 /** @typedef {{ property: Property, width: number, hidden: boolean }} ColumnLayout */
 /** @typedef {{ row: number, col: number }} CellPos */
 
@@ -72,7 +79,8 @@ const OVERSCAN = 8;
 /**
  * A database view as a table. Rows are drawn only around what's on screen
  * (fixed row height: a 5,000-row table has ~50 rows in the DOM) and loaded
- * a chunk at a time from the server, filtered and sorted there.
+ * a chunk at a time from the server, filtered and sorted there. It shows
+ * one page of the view's `page_size` rows at a time, with a pager under it.
  *
  * Keyboard (ARIA grid): arrows move between cells, Enter edits (Enter
  * again saves and moves down), typing starts editing a text cell, Delete
@@ -86,6 +94,7 @@ const OVERSCAN = 8;
  *   members: readonly Member[] | undefined,
  *   onOpenRow: (id: string, full: boolean) => void,
  *   onAddFilter: (propertyId: string) => void,
+ *   onChangeView: (patch: ViewPatch) => void,
  *   label: string,
  * }} props
  */
@@ -112,6 +121,7 @@ export default function Table(props) {
     /** @type {{ row: Row, anchor: HTMLElement } | null} */ (null),
   );
   const [deleting, setDeleting] = createSignal(/** @type {Property | null} */ (null));
+  const [page, setPage] = createSignal(0);
   /** @type {HTMLButtonElement | undefined} */
   let addButton;
 
@@ -124,16 +134,31 @@ export default function Table(props) {
   );
   const totalWidth = () =>
     columns().reduce((sum, c) => sum + c.width, 0) + (props.readOnly ? 0 : 40);
+  const pageSize = () => pageSizeOf(props.view);
+  // The rows on screen, as indexes in the whole view: the page's, from its first row.
   const rows = useRows(
     databaseId,
     () => ({ filter: props.view.filter, sorts: props.view.sorts }),
-    range,
+    () => {
+      const { start, end } = range();
+      const first = page() * pageSize();
+      return { start: first + start, end: first + Math.min(end, pageSize()) };
+    },
   );
   const total = () => rows.total() ?? 0;
+  const slice = createMemo(() => pageSlice(total(), pageSize(), page()));
+  // Rows gone (deleted, filtered out elsewhere) can leave the page past the end: go to the last.
+  createEffect(() => {
+    if (rows.total() !== undefined && slice().page !== page()) setPage(slice().page);
+  });
+  /** Rows on this page. Cells, focus and keyboard moves use indexes within the page. */
+  const count = () => slice().count;
+  /** @param {number} index Within the page. */
+  const rowAt = (index) => rows.row(slice().start + index);
   const visible = createMemo(() => {
     const { start, end } = range();
     const out = [];
-    for (let i = start; i < Math.min(end, total()); i++) out.push(i);
+    for (let i = start; i < Math.min(end, count()); i++) out.push(i);
     return out;
   });
   const sortOf = (/** @type {string} */ id) => props.view.sorts.find((s) => s.property_id === id);
@@ -182,17 +207,38 @@ export default function Table(props) {
     });
   });
 
-  // A filter or sort change starts over at the top.
+  // A filter, sort or page size change starts over at the top, on the first page.
   createEffect(
     on(
-      () => JSON.stringify([props.view.id, props.view.filter, props.view.sorts]),
+      () => JSON.stringify([props.view.id, props.view.filter, props.view.sorts, pageSize()]),
       () => {
         setActive(null);
         setEditing(null);
+        setPage(0);
       },
       { defer: true },
     ),
   );
+
+  /** Shows another page, scrolled to its top if the table's top is off screen. @param {number} next */
+  function goToPage(next) {
+    const target = pageSlice(total(), pageSize(), next).page;
+    if (target === slice().page) return;
+    setActive(null);
+    setEditing(null);
+    setPage(target);
+    scrollToTop();
+  }
+
+  function scrollToTop() {
+    if (!grid) return;
+    const scroller = scrollParent(grid.parentElement);
+    const top = grid.getBoundingClientRect().top;
+    const viewTop = scroller ? scroller.getBoundingClientRect().top : 0;
+    if (top >= viewTop) return;
+    if (scroller) scroller.scrollTop += top - viewTop - 8;
+    else window.scrollBy(0, top - 8);
+  }
 
   /** @param {CellPos} pos */
   const cellEl = (pos) =>
@@ -224,7 +270,7 @@ export default function Table(props) {
 
   /** @param {CellPos} pos @param {number} dRow @param {number} dCol */
   function move(pos, dRow, dCol) {
-    const row = Math.max(0, Math.min(total() - 1, pos.row + dRow));
+    const row = Math.max(0, Math.min(count() - 1, pos.row + dRow));
     const col = Math.max(0, Math.min(columns().length - 1, pos.col + dCol));
     focusCell({ row, col });
   }
@@ -255,7 +301,7 @@ export default function Table(props) {
   /** Starts editing a cell, or acts on it right away (a checkbox). @param {CellPos} pos @param {string} [initial] */
   function edit(pos, initial) {
     const property = columnAt(pos);
-    const row = rows.row(pos.row);
+    const row = rowAt(pos.row);
     if (!property || !row || props.readOnly) return;
     if (property.type === "checkbox") {
       save(row, property, row.properties[property.id] === true ? null : true);
@@ -278,15 +324,15 @@ export default function Table(props) {
     if (!pos || editing() || event.defaultPrevented) return;
     if (!(event.target instanceof HTMLElement) || !event.target.matches("[data-cell]")) return;
     const property = columnAt(pos);
-    const row = rows.row(pos.row);
+    const row = rowAt(pos.row);
     const mod = event.metaKey || event.ctrlKey;
     switch (event.key) {
       case "ArrowDown":
         event.preventDefault();
-        return move(pos, mod ? total() : 1, 0);
+        return move(pos, mod ? count() : 1, 0);
       case "ArrowUp":
         event.preventDefault();
-        return move(pos, mod ? -total() : -1, 0);
+        return move(pos, mod ? -count() : -1, 0);
       case "ArrowRight":
         event.preventDefault();
         return move(pos, 0, 1);
@@ -295,10 +341,10 @@ export default function Table(props) {
         return move(pos, 0, -1);
       case "Home":
         event.preventDefault();
-        return move(pos, mod ? -total() : 0, -columns().length);
+        return move(pos, mod ? -count() : 0, -columns().length);
       case "End":
         event.preventDefault();
-        return move(pos, mod ? total() : 0, columns().length);
+        return move(pos, mod ? count() : 0, columns().length);
       case "PageDown":
       case "PageUp": {
         event.preventDefault();
@@ -344,8 +390,15 @@ export default function Table(props) {
   }
 
   function newRow() {
-    const index = total();
+    // The new row comes last: on the last page, which may be a new one.
+    const last = total();
+    const target = Math.floor(last / pageSize());
+    const index = last - target * pageSize();
     addRow({ databaseId: databaseId(), workspaceId: props.workspaceId });
+    if (target !== slice().page) {
+      setPage(target);
+      scrollToTop();
+    }
     const titleCol = Math.max(
       0,
       columns().findIndex((c) => c.property.type === "title"),
@@ -448,223 +501,311 @@ export default function Table(props) {
   };
 
   return (
-    <div class={styles.scroll}>
-      <div
-        ref={grid}
-        class={styles.grid}
-        style={{ width: `${totalWidth()}px` }}
-        role="grid"
-        aria-label={props.label}
-        aria-rowcount={total() + 1}
-        aria-colcount={columns().length}
-        aria-readonly={props.readOnly || undefined}
-        onKeyDown={onGridKeyDown}
-      >
-        <div class={styles.headerRow} role="row" aria-rowindex={1}>
-          <Index each={columns()}>
-            {(column, index) => (
-              <div
-                class={styles.headerCell}
-                style={{ width: `${column().width}px` }}
-                role="columnheader"
-                aria-sort={sortOf(column().property.id)?.direction ?? undefined}
-                data-header
-                data-drop={dropAt()?.index === index ? dropAt()?.side : undefined}
-              >
-                <button
-                  type="button"
-                  class={styles.headerButton}
-                  aria-haspopup="dialog"
-                  aria-expanded={menu()?.id === column().property.id}
-                  onPointerDown={(event) => startColumnDrag(event, index)}
-                  onClick={(event) => {
-                    const id = column().property.id;
-                    setMenu(menu()?.id === id ? null : { id, anchor: event.currentTarget });
-                  }}
+    <>
+      <div class={styles.scroll}>
+        <div
+          ref={grid}
+          class={styles.grid}
+          style={{ width: `${totalWidth()}px` }}
+          role="grid"
+          aria-label={props.label}
+          aria-rowcount={total() + 1}
+          aria-colcount={columns().length}
+          aria-readonly={props.readOnly || undefined}
+          onKeyDown={onGridKeyDown}
+        >
+          <div class={styles.headerRow} role="row" aria-rowindex={1}>
+            <Index each={columns()}>
+              {(column, index) => (
+                <div
+                  class={styles.headerCell}
+                  style={{ width: `${column().width}px` }}
+                  role="columnheader"
+                  aria-sort={sortOf(column().property.id)?.direction ?? undefined}
+                  data-header
+                  data-drop={dropAt()?.index === index ? dropAt()?.side : undefined}
                 >
-                  <PropertyIcon type={column().property.type} />
-                  <span class={styles.headerName}>{column().property.name}</span>
-                  <Show when={sortOf(column().property.id)}>
-                    {(sort) => (
-                      <span class={styles.sortMark} aria-hidden="true">
-                        {sort().direction === "ascending" ? (
-                          <IconArrowUp size={14} />
-                        ) : (
-                          <IconArrowDown size={14} />
-                        )}
-                      </span>
-                    )}
+                  <button
+                    type="button"
+                    class={styles.headerButton}
+                    aria-haspopup="dialog"
+                    aria-expanded={menu()?.id === column().property.id}
+                    onPointerDown={(event) => startColumnDrag(event, index)}
+                    onClick={(event) => {
+                      const id = column().property.id;
+                      setMenu(menu()?.id === id ? null : { id, anchor: event.currentTarget });
+                    }}
+                  >
+                    <PropertyIcon type={column().property.type} />
+                    <span class={styles.headerName}>{column().property.name}</span>
+                    <Show when={sortOf(column().property.id)}>
+                      {(sort) => (
+                        <span class={styles.sortMark} aria-hidden="true">
+                          {sort().direction === "ascending" ? (
+                            <IconArrowUp size={14} />
+                          ) : (
+                            <IconArrowDown size={14} />
+                          )}
+                        </span>
+                      )}
+                    </Show>
+                  </button>
+                  <Show when={!props.readOnly}>
+                    <div
+                      class={styles.resize}
+                      aria-hidden="true"
+                      onPointerDown={(event) => startResize(event, column())}
+                    />
                   </Show>
-                </button>
-                <Show when={!props.readOnly}>
-                  <div
-                    class={styles.resize}
-                    aria-hidden="true"
-                    onPointerDown={(event) => startResize(event, column())}
-                  />
-                </Show>
-              </div>
-            )}
-          </Index>
+                </div>
+              )}
+            </Index>
+            <Show when={!props.readOnly}>
+              <button
+                ref={addButton}
+                type="button"
+                class={styles.addColumn}
+                aria-label="Add a property"
+                aria-haspopup="dialog"
+                aria-expanded={adding()}
+                {...createToggleHandlers(adding, setAdding)}
+              >
+                <IconPlus size={16} />
+              </button>
+            </Show>
+          </div>
+
+          <div
+            ref={body}
+            class={styles.body}
+            style={{ height: `${count() * rowHeight()}px` }}
+            role="rowgroup"
+          >
+            <For each={visible()}>
+              {(index) => (
+                <TableRow
+                  index={index}
+                  rowIndex={slice().start + index}
+                  row={rowAt(index)}
+                  top={index * rowHeight()}
+                  columns={columns()}
+                  active={active()}
+                  editing={editing()}
+                  readOnly={props.readOnly}
+                  members={props.members}
+                  databaseId={databaseId()}
+                  workspaceId={props.workspaceId}
+                  valueOf={valueOf}
+                  onActivate={(col) => setActive({ row: index, col })}
+                  onEdit={(col) => edit({ row: index, col })}
+                  onSave={save}
+                  onStopEditing={stopEditing}
+                  onMove={(dRow, dCol) => {
+                    const pos = { row: index, col: active()?.col ?? 0 };
+                    stopEditing(false);
+                    move(pos, dRow, dCol);
+                  }}
+                  onOpenRow={props.onOpenRow}
+                  onRowMenu={(row, anchor) => setRowMenu({ row, anchor })}
+                />
+              )}
+            </For>
+          </div>
+
           <Show when={!props.readOnly}>
             <button
-              ref={addButton}
               type="button"
-              class={styles.addColumn}
-              aria-label="Add a property"
-              aria-haspopup="dialog"
-              aria-expanded={adding()}
-              {...createToggleHandlers(adding, setAdding)}
+              class={styles.newRow}
+              style={{ width: `${totalWidth()}px` }}
+              onClick={newRow}
             >
-              <IconPlus size={16} />
+              <IconPlus size={16} /> New
             </button>
           </Show>
         </div>
 
-        <div
-          ref={body}
-          class={styles.body}
-          style={{ height: `${total() * rowHeight()}px` }}
-          role="rowgroup"
-        >
-          <For each={visible()}>
-            {(index) => (
-              <TableRow
-                index={index}
-                row={rows.row(index)}
-                top={index * rowHeight()}
-                columns={columns()}
-                active={active()}
-                editing={editing()}
-                readOnly={props.readOnly}
-                members={props.members}
-                databaseId={databaseId()}
-                workspaceId={props.workspaceId}
-                valueOf={valueOf}
-                onActivate={(col) => setActive({ row: index, col })}
-                onEdit={(col) => edit({ row: index, col })}
-                onSave={save}
-                onStopEditing={stopEditing}
-                onMove={(dRow, dCol) => {
-                  const pos = { row: index, col: active()?.col ?? 0 };
-                  stopEditing(false);
-                  move(pos, dRow, dCol);
-                }}
-                onOpenRow={props.onOpenRow}
-                onRowMenu={(row, anchor) => setRowMenu({ row, anchor })}
-              />
-            )}
-          </For>
-        </div>
-
-        <Show when={!props.readOnly}>
-          <button
-            type="button"
-            class={styles.newRow}
-            style={{ width: `${totalWidth()}px` }}
-            onClick={newRow}
-          >
-            <IconPlus size={16} /> New
-          </button>
-        </Show>
-      </div>
-
-      <Show when={menuProperty()}>
-        {(property) => (
-          <PropertyMenu
-            open
-            onOpenChange={(open) => !open && setMenu(null)}
-            anchor={() => menu()?.anchor}
-            databaseId={databaseId()}
-            property={property()}
-            readOnly={props.readOnly}
-            onSort={(direction) => sortBy(property(), direction)}
-            onFilter={() => props.onAddFilter(property().id)}
-            onHide={() =>
-              void updateView(databaseId(), props.view.id, {
-                columns: withColumn(props.view, schema(), property().id, { hidden: true }),
-              })
-            }
-            onDelete={() => setDeleting(property())}
-          />
-        )}
-      </Show>
-      <ConfirmDialog
-        open={deleting() !== null}
-        onOpenChange={(open) => !open && setDeleting(null)}
-        title={`Delete “${deleting()?.name ?? ""}”?`}
-        description="Its values go from every row, and views stop using it. This can't be undone."
-        confirmLabel="Delete property"
-        onConfirm={() => {
-          const property = deleting();
-          if (property) void deleteProperty(databaseId(), property);
-        }}
-      />
-      <Menu
-        open={rowMenu() !== null}
-        onOpenChange={(open) => !open && setRowMenu(null)}
-        anchor={() => rowMenu()?.anchor}
-        label={`${displayTitle(rowMenu()?.row.title ?? "")} actions`}
-        placement="bottom-end"
-      >
-        {/* Keyed: an item closes the menu (clearing rowMenu) before its onSelect runs. */}
-        <Show when={rowMenu()?.row} keyed>
-          {(row) => (
-            <>
-              <MenuItem
-                icon={<IconOpen size={16} />}
-                onSelect={() => props.onOpenRow(row.id, false)}
-              >
-                Open in side peek
-              </MenuItem>
-              <MenuItem
-                icon={<IconOpen size={16} />}
-                onSelect={() => props.onOpenRow(row.id, true)}
-              >
-                Open as full page
-              </MenuItem>
-              <MenuSeparator />
-              <MenuItem
-                icon={<IconTrash size={16} />}
-                onSelect={() =>
-                  void trashRows({
-                    databaseId: databaseId(),
-                    workspaceId: props.workspaceId,
-                    ids: [row.id],
-                    title: row.title,
-                  })
-                }
-              >
-                Delete
-              </MenuItem>
-            </>
+        <Show when={menuProperty()}>
+          {(property) => (
+            <PropertyMenu
+              open
+              onOpenChange={(open) => !open && setMenu(null)}
+              anchor={() => menu()?.anchor}
+              databaseId={databaseId()}
+              property={property()}
+              readOnly={props.readOnly}
+              onSort={(direction) => sortBy(property(), direction)}
+              onFilter={() => props.onAddFilter(property().id)}
+              onHide={() =>
+                void updateView(databaseId(), props.view.id, {
+                  columns: withColumn(props.view, schema(), property().id, { hidden: true }),
+                })
+              }
+              onDelete={() => setDeleting(property())}
+            />
           )}
         </Show>
-      </Menu>
-      <Show when={!props.readOnly}>
-        <AddPropertyMenu
-          open={adding()}
-          onOpenChange={setAdding}
-          anchor={() => addButton}
-          databaseId={databaseId()}
-          onAdded={(id) =>
-            requestAnimationFrame(() => {
-              const header = grid?.querySelectorAll("[data-header]");
-              const index = columns().findIndex((c) => c.property.id === id);
-              const button = header?.[index]?.querySelector("button");
-              if (button instanceof HTMLElement) setMenu({ id, anchor: button });
-            })
-          }
+        <ConfirmDialog
+          open={deleting() !== null}
+          onOpenChange={(open) => !open && setDeleting(null)}
+          title={`Delete “${deleting()?.name ?? ""}”?`}
+          description="Its values go from every row, and views stop using it. This can't be undone."
+          confirmLabel="Delete property"
+          onConfirm={() => {
+            const property = deleting();
+            if (property) void deleteProperty(databaseId(), property);
+          }}
         />
+        <Menu
+          open={rowMenu() !== null}
+          onOpenChange={(open) => !open && setRowMenu(null)}
+          anchor={() => rowMenu()?.anchor}
+          label={`${displayTitle(rowMenu()?.row.title ?? "")} actions`}
+          placement="bottom-end"
+        >
+          {/* Keyed: an item closes the menu (clearing rowMenu) before its onSelect runs. */}
+          <Show when={rowMenu()?.row} keyed>
+            {(row) => (
+              <>
+                <MenuItem
+                  icon={<IconOpen size={16} />}
+                  onSelect={() => props.onOpenRow(row.id, false)}
+                >
+                  Open in side peek
+                </MenuItem>
+                <MenuItem
+                  icon={<IconOpen size={16} />}
+                  onSelect={() => props.onOpenRow(row.id, true)}
+                >
+                  Open as full page
+                </MenuItem>
+                <MenuSeparator />
+                <MenuItem
+                  icon={<IconTrash size={16} />}
+                  onSelect={() =>
+                    void trashRows({
+                      databaseId: databaseId(),
+                      workspaceId: props.workspaceId,
+                      ids: [row.id],
+                      title: row.title,
+                    })
+                  }
+                >
+                  Delete
+                </MenuItem>
+              </>
+            )}
+          </Show>
+        </Menu>
+        <Show when={!props.readOnly}>
+          <AddPropertyMenu
+            open={adding()}
+            onOpenChange={setAdding}
+            anchor={() => addButton}
+            databaseId={databaseId()}
+            onAdded={(id) =>
+              requestAnimationFrame(() => {
+                const header = grid?.querySelectorAll("[data-header]");
+                const index = columns().findIndex((c) => c.property.id === id);
+                const button = header?.[index]?.querySelector("button");
+                if (button instanceof HTMLElement) setMenu({ id, anchor: button });
+              })
+            }
+          />
+        </Show>
+      </div>
+      <Show when={total() > 0}>
+        <Pager
+          start={slice().start}
+          count={count()}
+          total={total()}
+          page={slice().page}
+          pages={slice().pages}
+          pageSize={pageSize()}
+          onPage={goToPage}
+          onPageSize={(size) => props.onChangeView({ page_size: size })}
+        />
+      </Show>
+    </>
+  );
+}
+
+/**
+ * Under the table: which rows are showing, the page (back, a list of
+ * pages, forward) and how many rows a page has, saved to the view.
+ * @param {{
+ *   start: number,
+ *   count: number,
+ *   total: number,
+ *   page: number,
+ *   pages: number,
+ *   pageSize: number,
+ *   onPage: (page: number) => void,
+ *   onPageSize: (size: number) => void,
+ * }} props
+ */
+function Pager(props) {
+  return (
+    <div class={cx(styles.footer, styles.pager)} role="navigation" aria-label="Table pages">
+      <label class={styles.pagerSize}>
+        <span>Rows per page</span>
+        <select
+          class={styles.pagerSelect}
+          value={props.pageSize}
+          onChange={(event) => props.onPageSize(Number(event.currentTarget.value))}
+        >
+          <For each={pageSizeChoices(props.pageSize)}>
+            {(size) => <option value={size}>{size}</option>}
+          </For>
+        </select>
+      </label>
+      <span class={styles.pagerSpacer} />
+      <span class={styles.pagerRange} aria-live="polite">
+        {props.count > 0 ? `${props.start + 1}–${props.start + props.count}` : "0"} of {props.total}
+      </span>
+      <Show when={props.pages > 1}>
+        <button
+          type="button"
+          class={styles.pagerButton}
+          aria-label="Previous page"
+          disabled={props.page === 0}
+          onClick={() => props.onPage(props.page - 1)}
+        >
+          <IconChevronLeft size={16} />
+        </button>
+        <select
+          class={styles.pagerSelect}
+          aria-label="Page"
+          value={props.page}
+          onChange={(event) => props.onPage(Number(event.currentTarget.value))}
+        >
+          <Index each={Array.from({ length: props.pages })}>
+            {(_, i) => (
+              <option value={i}>
+                Page {i + 1} of {props.pages}
+              </option>
+            )}
+          </Index>
+        </select>
+        <button
+          type="button"
+          class={styles.pagerButton}
+          aria-label="Next page"
+          disabled={props.page >= props.pages - 1}
+          onClick={() => props.onPage(props.page + 1)}
+        >
+          <IconChevronRight size={16} />
+        </button>
       </Show>
     </div>
   );
 }
 
 /**
- * One row of the table. `row` is undefined while its chunk loads.
+ * One row of the table. `row` is undefined while its chunk loads. `index`
+ * is its place on the page, `rowIndex` in the whole view.
  * @param {{
  *   index: number,
+ *   rowIndex: number,
  *   row: Row | undefined,
  *   top: number,
  *   columns: ColumnLayout[],
@@ -690,7 +831,7 @@ function TableRow(props) {
       class={props.row ? styles.row : `${styles.row} ${styles.placeholderRow}`}
       style={{ transform: `translateY(${props.top}px)` }}
       role="row"
-      aria-rowindex={props.index + 2}
+      aria-rowindex={props.rowIndex + 2}
       aria-busy={props.row ? undefined : "true"}
       onContextMenu={(event) => {
         const row = props.row;

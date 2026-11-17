@@ -22,6 +22,11 @@ export const MAX_VIEW_NAME = 200;
 export const DEFAULT_COLUMN_WIDTH = 180;
 export const DEFAULT_TITLE_WIDTH = 280;
 export const MAX_HIDDEN_GROUPS = MAX_OPTIONS + 1;
+/** Rows a table shows per page when its view doesn't say. */
+export const DEFAULT_PAGE_SIZE = 50;
+export const MAX_PAGE_SIZE = 1000;
+/** The page sizes the table offers. */
+export const PAGE_SIZES = [10, 25, 50, 100, 250, 500];
 
 /** @typedef {import("../api/types.js").ViewType} ViewType */
 
@@ -42,6 +47,7 @@ export function newView(id, name, type, position) {
     group_by: null,
     card_properties: [],
     hidden_groups: [],
+    page_size: null,
   };
 }
 
@@ -58,6 +64,7 @@ export function withDefaults(view) {
     group_by: view.group_by ?? null,
     card_properties: view.card_properties ?? [],
     hidden_groups: view.hidden_groups ?? [],
+    page_size: view.page_size ?? null,
   };
 }
 
@@ -154,6 +161,41 @@ export function fitSchema(view, schema) {
         ? view.hidden_groups.filter((id) => id === "" || findOption(groupBy, id))
         : [],
   };
+}
+
+/**
+ * How many rows a table shows per page: null (the default) or 1–1000.
+ * @param {unknown} raw
+ * @returns {number | null}
+ */
+export function parsePageSize(raw) {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== "number" || !Number.isInteger(raw) || raw < 1 || raw > MAX_PAGE_SIZE)
+    throw invalidView(`page_size is 1–${MAX_PAGE_SIZE} or null`);
+  return raw;
+}
+
+/** The rows per page a view's table shows. @param {Pick<View, "page_size"> | undefined} view */
+export function pageSizeOf(view) {
+  const size = view?.page_size;
+  return typeof size === "number" && size >= 1 ? size : DEFAULT_PAGE_SIZE;
+}
+
+/**
+ * One page of a table: its first row's index, how many rows it has, and
+ * how many pages there are (at least one). `page` past the end is the last.
+ * @param {number} total @param {number} size @param {number} page
+ */
+export function pageSlice(total, size, page) {
+  const pages = Math.max(1, Math.ceil(total / size));
+  const current = Math.max(0, Math.min(page, pages - 1));
+  const start = current * size;
+  return { page: current, pages, start, count: Math.max(0, Math.min(size, total - start)) };
+}
+
+/** The page sizes to offer: the standard ones and the view's own. @param {number} current */
+export function pageSizeChoices(current) {
+  return PAGE_SIZES.includes(current) ? PAGE_SIZES : [...PAGE_SIZES, current].sort((a, b) => a - b);
 }
 
 /** @param {string} message */

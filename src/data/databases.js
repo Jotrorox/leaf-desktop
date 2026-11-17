@@ -831,7 +831,7 @@ const updateViewMut = createMutation({
 });
 
 /**
- * Changes a view's name, type, filter, sorts, columns or board settings.
+ * Changes a view's name, type, filter, sorts, columns, board settings or page size.
  * @param {string} databaseId @param {string} viewId @param {ViewVars["patch"]} patch
  */
 export function updateView(databaseId, viewId, patch) {
@@ -841,8 +841,18 @@ export function updateView(databaseId, viewId, patch) {
 const createViewMut = createMutation({
   /** @param {{ databaseId: string, view: View }} vars */
   mutationFn: (vars) => {
-    const { id, name, type, filter, sorts, columns, group_by, card_properties, hidden_groups } =
-      vars.view;
+    const {
+      id,
+      name,
+      type,
+      filter,
+      sorts,
+      columns,
+      group_by,
+      card_properties,
+      hidden_groups,
+      page_size,
+    } = vars.view;
     return api.createView(vars.databaseId, {
       id,
       name,
@@ -853,6 +863,7 @@ const createViewMut = createMutation({
       group_by,
       card_properties,
       hidden_groups,
+      page_size,
     });
   },
   scope: (vars) => dbScope(vars.databaseId),

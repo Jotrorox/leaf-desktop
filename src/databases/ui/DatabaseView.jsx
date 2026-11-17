@@ -34,7 +34,15 @@ import { boardColumns, groupProperty, NO_VALUE, withCardProperty } from "../boar
 import { describeFilter } from "../format.js";
 import { groupItems, groupOp, makeGroup } from "../query.js";
 import { TITLE_ID } from "../schema.js";
-import { canGroupBy, defaultGroupBy, layoutColumns, MAX_VIEW_NAME, withColumn } from "../views.js";
+import {
+  canGroupBy,
+  defaultGroupBy,
+  layoutColumns,
+  MAX_VIEW_NAME,
+  pageSizeChoices,
+  pageSizeOf,
+  withColumn,
+} from "../views.js";
 import Board from "./Board.jsx";
 import styles from "./Database.module.css";
 import FilterBuilder, { newCondition, SortBuilder } from "./FilterBuilder.jsx";
@@ -337,6 +345,7 @@ function Loaded(props) {
                   label={`${displayTitle(props.page.title)}: ${v().name || "Untitled view"}`}
                   onOpenRow={openRow}
                   onAddFilter={addFilter}
+                  onChangeView={changeView}
                 />
               }
             >
@@ -377,12 +386,27 @@ function Loaded(props) {
                 placement="bottom-end"
                 class={styles.panel}
                 role="dialog"
-                aria-label="Properties in this view"
+                aria-label="View settings"
               >
                 <Show when={v().type === "board"}>
                   <BoardSettings database={props.database} view={v()} onChange={changeView} />
                 </Show>
                 <Show when={v().type === "table"}>
+                  <label class={styles.panelTitle} for={`page-size-${v().id}`}>
+                    Rows per page
+                  </label>
+                  <select
+                    id={`page-size-${v().id}`}
+                    class={cx(styles.field, styles.groupField)}
+                    value={pageSizeOf(v())}
+                    onChange={(event) =>
+                      changeView({ page_size: Number(event.currentTarget.value) })
+                    }
+                  >
+                    <For each={pageSizeChoices(pageSizeOf(v()))}>
+                      {(size) => <option value={size}>{size}</option>}
+                    </For>
+                  </select>
                   <div class={styles.panelTitle}>Properties in this view</div>
                   <For each={layoutColumns(v(), props.database.properties)}>
                     {(column) => (

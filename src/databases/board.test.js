@@ -103,6 +103,7 @@ test("views saved before boards get empty board settings", () => {
     group_by: null,
     card_properties: [],
     hidden_groups: [],
+    page_size: null,
   });
 });
 

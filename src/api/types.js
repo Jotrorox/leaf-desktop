@@ -195,6 +195,7 @@
  * @property {string | null} group_by A board's columns: a select or status property.
  * @property {string[]} card_properties Shown on a board's cards, under the title.
  * @property {string[]} hidden_groups A board's hidden columns: option ids, "" for rows without a value.
+ * @property {number | null} page_size Rows a table shows per page; null: the default (50).
  */
 
 /**
