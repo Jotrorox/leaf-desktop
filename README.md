@@ -1,70 +1,47 @@
 # leaf desktop
 
-Desktop app for leaf, built with [Tauri 2](https://v2.tauri.app) and [SolidJS](https://www.solidjs.com).
+The desktop app for [leaf](https://leaf.jotrorox.com), built with [Tauri 2](https://v2.tauri.app)
+and [SolidJS](https://www.solidjs.com). Same UI, API and accounts as the web app, plus:
 
-The UI is the leaf web app's (`leaf-frontend`): the same sidebar, editor, databases,
-sharing and settings, talking to the same API and Clerk instance. On top of it the
-desktop app adds:
+- **Instant start, works offline:** the session and query cache are stored locally and
+  every page is synced in the background; offline edits are sent when you reconnect.
+- **Native networking:** API, Clerk and live-sync traffic goes through Rust (`src-tauri/src/net.rs`).
+- **Native sign-in:** Clerk's Native API, with Sign in with Apple in the system browser.
+- **Desktop behavior:** native menus and shortcuts, and it remembers your window and last page.
 
-- **Instant start, offline-ready.** The signed-in user, `/v1/me` and the whole query
-  cache (sidebar, pages, databases) are saved locally and shown the moment the window
-  opens, then refreshed in the background. A background sync keeps a local copy of
-  every page's document (`src/desktop/prefetch.js`), so notes open instantly and work
-  offline; edits are stored locally and sent when the connection is back.
-- **Native networking.** API and Clerk requests and live-sync sockets go through Rust
-  (`src-tauri/src/net.rs`): one pooled HTTP/2 client, no browser CORS or origin rules.
-- **Clerk as a native client** (`src/auth/clerk.js`): Clerk's JS and UI are bundled
-  (no remote scripts), sessions use Clerk's Native API (client token in a private
-  file, `src-tauri/src/secrets.rs`), and Sign in with Apple runs in the system browser
-  and returns through `leaf://sso-callback` (a loopback URL in debug builds).
-- **Desktop behavior.** macOS title bar overlay with the traffic lights in the sidebar,
-  native menus (⌘N new page, ⌘, settings, ⌘[ / ⌘] back and forward), the last page
-  reopened on launch, window size and position remembered, external links opened in
-  the default browser.
+## Download
 
-## Setup
+Get the latest build for macOS (universal), Windows or Linux from
+[Releases](https://github.com/Jotrorox/leaf-desktop/releases/latest).
 
-Tools are managed by [mise](https://mise.jdx.dev) (`mise.toml`: node, pnpm, actionlint);
-Rust comes from rustup via `rust-toolchain.toml`.
+> The macOS build is not notarized yet. If macOS says the app is damaged, run
+> `xattr -cr /Applications/leaf.app` once.
+
+## Development
+
+Tools come from [mise](https://mise.jdx.dev) (`mise.toml`), Rust from `rust-toolchain.toml`.
 
 ```sh
 mise install
-mise run dev       # run the app (against leaf's production services)
-mise run dev-mock  # the UI in a browser, against an in-memory mock backend
+mise run dev       # run the app against production services
+mise run dev-mock  # UI in a browser with an in-memory mock backend
 mise run check     # fmt-check, lint, test (what CI runs)
-mise run build     # production bundle for the current OS
-mise run icons     # regenerate src-tauri/icons from app-icon.svg
+mise run build     # bundle for the current OS
 ```
 
-### Configuration
+To use a local backend, override `.env` in `.env.local` (`VITE_API_URL`,
+`VITE_CLERK_PUBLISHABLE_KEY`, `VITE_WEB_ORIGIN`).
 
-`.env` holds the public build settings (API URL, Clerk publishable key, web app
-origin) and points at production. For a local backend, override them in `.env.local`:
-
-```sh
-VITE_API_URL=http://localhost:8080
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_…
-VITE_WEB_ORIGIN=http://localhost:5173   # must equal the backend's ALLOWED_ORIGIN
-```
-
-### Clerk dashboard
-
-For each Clerk instance the app uses (Native applications page):
-
-- **Native API** must be enabled (it is, for both leaf instances).
-- **Sign in with Apple:** add both redirect URLs to the allowlist for mobile/native SSO
-  redirects: `leaf://sso-callback` (installed builds) and
-  `http://127.0.0.1:52184/sso-callback` (debug builds, `mise run dev`). macOS only routes
-  `leaf://` to an installed app, so debug builds receive the callback on a loopback
-  listener instead (`src-tauri/src/oauth.rs`). A missing entry shows Clerk's "redirect
-  url does not match" error; email sign-in works regardless.
+Sign in with Apple needs `leaf://sso-callback` and `http://127.0.0.1:52184/sso-callback`
+(debug builds) on the Clerk instance's native SSO redirect allowlist.
 
 ## Releasing
 
 ```sh
-mise run release 0.2.0          # bump versions, commit, tag v0.2.0
+mise run release 0.2.0             # bump versions, commit, tag v0.2.0
 git push origin main --follow-tags
 ```
 
-Pushing a `v*` tag runs `.github/workflows/release.yml`, which builds macOS (universal),
-Windows and Linux bundles and attaches them to a draft GitHub release.
+The tag triggers `.github/workflows/release.yml`. It builds every platform and publishes the
+GitHub release once all bundles are uploaded. macOS signing and notarization turn on when
+the `APPLE_*` secrets are set in the `release` environment.

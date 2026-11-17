@@ -68,9 +68,7 @@
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": [
-          "leaf"
-        ]
+        "schemes": ["leaf"]
       }
     }
   }

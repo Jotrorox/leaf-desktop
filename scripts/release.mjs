@@ -42,7 +42,7 @@ if (!current) fail("could not find version in [workspace.package] of Cargo.toml"
 if (current === version) fail(`version is already ${version}`);
 writeFileSync(cargoPath, cargo.replace(section, `$1${version}$3`));
 
-// JSON manifests: keep formatting stable (2-space indent, trailing newline).
+// JSON manifests (reformatted with Biome below).
 const jsonFiles = ["src-tauri/tauri.conf.json", "package.json"];
 for (const file of jsonFiles) {
   const path = join(root, file);
@@ -52,6 +52,10 @@ for (const file of jsonFiles) {
 }
 
 try {
+  // JSON.stringify expands short arrays that Biome keeps inline; reformat so
+  // the release commit passes `mise run fmt-check`.
+  run("pnpm", ["biome", "format", "--write", ...jsonFiles], { stdio: "inherit" });
+
   // Refresh workspace entries in Cargo.lock without touching dependencies.
   run("cargo", ["update", "--workspace", "--offline"], { stdio: "inherit" });
 
