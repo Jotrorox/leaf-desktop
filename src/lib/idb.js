@@ -18,7 +18,9 @@ const open = new Map();
 /**
  * @param {string} name
  * @param {number} version
- * @param {(db: IDBDatabase, oldVersion: number) => void} upgrade
+ * @param {(db: IDBDatabase, oldVersion: number, tx: IDBTransaction) => void} upgrade
+ *   Runs inside the version change transaction (`tx`), e.g. to add an index
+ *   to an existing store.
  * @returns {Promise<IDBDatabase>}
  */
 export function openDatabase(name, version, upgrade) {
@@ -31,7 +33,8 @@ export function openDatabase(name, version, upgrade) {
       return;
     }
     const req = indexedDB.open(name, version);
-    req.onupgradeneeded = (event) => upgrade(req.result, event.oldVersion);
+    req.onupgradeneeded = (event) =>
+      upgrade(req.result, event.oldVersion, /** @type {IDBTransaction} */ (req.transaction));
     req.onsuccess = () => {
       const db = req.result;
       // Another tab is upgrading or deleting it (sign-out): let go.

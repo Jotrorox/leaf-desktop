@@ -568,6 +568,19 @@ export function createQueryClient({
     },
 
     /**
+     * One entry's confirmed data, as `dehydrate` gives it, or null when it
+     * has none or isn't cached. For saving entries one at a time, as
+     * `onChange` reports them.
+     * @param {string} hash
+     * @returns {{ key: QueryKey, data: unknown, updatedAt: number } | null}
+     */
+    dehydrateEntry(hash) {
+      const entry = entries.get(hash);
+      if (!entry?.hasBase || entry.base === undefined) return null;
+      return { key: entry.key, data: entry.base, updatedAt: entry.updatedAt };
+    },
+
+    /**
      * Seeds the cache with saved data (from `dehydrate`). Each restored
      * entry counts as stale: it shows at once, and the first observer
      * refetches it. Entries that already have data are left alone.

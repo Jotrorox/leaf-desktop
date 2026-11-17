@@ -575,6 +575,23 @@ test("dehydrate keeps confirmed data only, newest first, up to a limit", () => {
   assert.equal(client.dehydrate(1).length, 1);
 });
 
+test("dehydrateEntry gives one entry's confirmed data, by the hash onChange reports", () => {
+  const { client } = testClient();
+  /** @type {string[]} */
+  const hashes = [];
+  client.onChange((hash) => hashes.push(hash));
+  client.setData(["page", "p1"], { title: "A" });
+  client.setLayer(["page", "p1"], "pending", (page) => ({ ...page, title: "B" }));
+  client.setLayer(["only-optimistic"], "pending", () => "x");
+  assert.deepEqual(client.dehydrateEntry(hashes[0]), {
+    key: ["page", "p1"],
+    data: { title: "A" },
+    updatedAt: client.getState(["page", "p1"]).updatedAt,
+  });
+  assert.equal(client.dehydrateEntry(hashes.at(-1) ?? ""), null);
+  assert.equal(client.dehydrateEntry("missing"), null);
+});
+
 test("hydrate shows saved data at once and refetches it on first fetch", async () => {
   const { client } = testClient();
   client.hydrate([{ key: ["page", "p1"], data: { title: "Saved" }, updatedAt: 5 }]);

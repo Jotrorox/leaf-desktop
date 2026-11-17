@@ -49,8 +49,8 @@ onClearLocalData(clearAll);
 onClearLocalData(clearRecent);
 
 installDesktopShell();
-if (session().status === "signedIn") await restoreQueryCache(queryClient);
-persistQueryCache(queryClient);
+const restored = session().status === "signedIn" ? await restoreQueryCache(queryClient) : [];
+persistQueryCache(queryClient, { restored });
 
 const root = document.getElementById("root");
 if (!root) throw new Error("#root element missing");

@@ -3,8 +3,7 @@ import { getDoc } from "../api/docs.js";
 import { onClearLocalData } from "../auth/local-data.js";
 import { prefetchChildren, prefetchPage, prefetchWorkspaces } from "../data/pages.js";
 import { Doc } from "../editor/model/doc.js";
-import { writeCachedDoc } from "../editor/sync/cache.js";
-import { openDatabase, request } from "../lib/idb.js";
+import { cachedDocTimes, writeCachedDoc } from "../editor/sync/cache.js";
 
 /**
  * Keeps a local copy of the whole workspace, so every note opens instantly,
@@ -132,27 +131,4 @@ async function cacheDoc(pageId, savedAt, stale) {
   const doc = Doc.fromSnapshot(snapshot);
   // Everything in it came from the server, so the server has all of it.
   await writeCachedDoc(pageId, doc, doc.stateVector());
-}
-
-/** When each cached document was saved, by page id. */
-async function cachedDocTimes() {
-  /** @type {Map<string, number>} */
-  const times = new Map();
-  try {
-    const database = await openDatabase("leaf.docs", 1, (db) => {
-      if (!db.objectStoreNames.contains("docs")) db.createObjectStore("docs");
-    });
-    const store = database.transaction("docs", "readonly").objectStore("docs");
-    const [keys, values] = await Promise.all([
-      request(store.getAllKeys()),
-      request(store.getAll()),
-    ]);
-    keys.forEach((key, i) => {
-      const value = /** @type {{ savedAt?: number } | undefined} */ (values[i]);
-      if (typeof key === "string") times.set(key, value?.savedAt ?? 0);
-    });
-  } catch {
-    // No cache yet.
-  }
-  return times;
 }

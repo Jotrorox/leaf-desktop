@@ -49,7 +49,7 @@ import { equationLabel } from "../math/refs.js";
 import { renderMath } from "../math/render.js";
 import { Awareness } from "../sync/awareness.js";
 import { createDocCache } from "../sync/cache.js";
-import { loadDoc } from "../sync/load.js";
+import { loadDoc, peekDoc } from "../sync/load.js";
 import { localState, readPeer, setCollaborators, setJumpHandler } from "../sync/presence.js";
 import { SyncProvider } from "../sync/provider.js";
 import { setSaveStatus } from "../sync/status.js";
@@ -99,9 +99,13 @@ import { uploadImages } from "./uploads.js";
  *   `onReadOnly`: the server says the page can't be edited any more (it went to the trash, or was deleted).
  */
 export default function Editor(props) {
+  // A document in memory comes back synchronously, so the page shows in
+  // the same frame, without the loading placeholder.
   const [loaded, { refetch }] = createResource(
     () => props.pageId,
-    (pageId) => loadDoc(pageId, { readOnly: props.readOnly }),
+    (pageId) =>
+      peekDoc(pageId, { readOnly: props.readOnly }) ??
+      loadDoc(pageId, { readOnly: props.readOnly }),
   );
   return (
     <Switch>

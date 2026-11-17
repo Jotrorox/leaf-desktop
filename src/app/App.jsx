@@ -41,6 +41,7 @@ import {
   toggleSidebar,
 } from "./layout.js";
 import { openNewPage } from "./new-page.js";
+import { installLinkPreload } from "./preload.js";
 import QuickFind, { openQuickFind } from "./QuickFind.jsx";
 import ShortcutsDialog, { openShortcutsDialog } from "./ShortcutsDialog.jsx";
 import Sidebar from "./Sidebar.jsx";
@@ -178,6 +179,8 @@ function Shell() {
     if (!authReady()) return;
     onCleanup(startBackgroundSync());
   });
+  // Pages under the pointer load ahead of the click.
+  onMount(() => onCleanup(installLinkPreload()));
   onMount(() => {
     const menu = listenForMenu({
       "new-page": () => {

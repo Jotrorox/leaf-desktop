@@ -34,6 +34,7 @@ import Kbd from "../ui/Kbd.jsx";
 import PageIcon from "../ui/PageIcon.jsx";
 import { toggleSidebar } from "./layout.js";
 import { openNewPage } from "./new-page.js";
+import { preloadPage } from "./preload.js";
 import styles from "./QuickFind.module.css";
 import { recent } from "./recent.js";
 import { openShortcutsDialog } from "./ShortcutsDialog.jsx";
@@ -403,6 +404,11 @@ export default function QuickFind() {
   createEffect(() => {
     const index = active();
     list?.querySelector(`[data-index="${index}"]`)?.scrollIntoView({ block: "nearest" });
+  });
+  // The selected page loads ahead of Enter.
+  createEffect(() => {
+    const item = flat()[active()];
+    if (open() && item && item.type !== "action") preloadPage(item.id);
   });
 
   /** @param {Item} item */
