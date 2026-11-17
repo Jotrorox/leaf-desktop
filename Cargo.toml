@@ -4,7 +4,7 @@ members = ["src-tauri"]
 
 [workspace.package]
 # Bumped together with tauri.conf.json and package.json by `mise run release <version>`.
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.100"
 authors = ["Johannes Mueller"]
