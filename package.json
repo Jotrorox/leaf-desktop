@@ -17,8 +17,8 @@
     "test": "node --test \"src/**/*.test.js\""
   },
   "dependencies": {
-    "@clerk/clerk-js": "6.43.0",
-    "@clerk/ui": "1.42.5",
+    "@clerk/clerk-js": "6.46.2",
+    "@clerk/ui": "1.44.2",
     "@tauri-apps/api": "2.12.5",
     "@tauri-apps/plugin-deep-link": "2.6.3",
     "@tauri-apps/plugin-opener": "2.7.3",
@@ -32,6 +32,6 @@
     "@tauri-apps/cli": "2.12.5",
     "typescript": "7.0.2",
     "vite": "8.3.8",
-    "vite-plugin-solid": "2.11.16"
+    "vite-plugin-solid": "2.11.17"
   }
 }
