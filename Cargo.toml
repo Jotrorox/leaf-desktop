@@ -13,7 +13,7 @@ publish = false
 [workspace.dependencies]
 # Pinned exactly: the Tauri crate must stay in lockstep with @tauri-apps/cli.
 tauri = { version = "=2.12.6", features = [] }
-tauri-build = { version = "=2.7.5", features = [] }
+tauri-build = { version = "=2.7.6", features = [] }
 tauri-plugin-opener = "=2.7.3"
 tauri-plugin-deep-link = "=2.6.3"
 tauri-plugin-single-instance = { version = "=2.5.5", features = ["deep-link"] }
